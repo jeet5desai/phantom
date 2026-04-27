@@ -1,0 +1,81 @@
+@import "tailwindcss";
+
+@theme {
+  --font-display: var(--font-display), serif;
+  --font-sans: var(--font-sans), sans-serif;
+
+  --color-background: #F7F6F3;
+  --color-surface: #FFFFFF;
+  --color-surface-hover: #F0EFEb;
+  
+  --color-text-primary: #1A1A1A;
+  --color-text-secondary: #6B6860;
+  --color-text-tertiary: #A3A199;
+  
+  --color-accent-primary: #E07A3A;
+  --color-accent-light: #FDF0E6;
+  --color-accent-dark: #B85E22;
+  
+  --color-success: #2D7D46;
+  --color-success-bg: #F0FDF4;
+  
+  --color-error: #E53E3E;
+  --color-error-bg: #FFF5F5;
+  
+  --color-warning: #D97706;
+  --color-warning-bg: #FFFBEB;
+  
+  --color-border: #E8E6E0;
+  --color-border-strong: #C8C5BD;
+
+  --spacing-lg: 24px;
+  --spacing-md: 16px;
+  --spacing-sm: 8px;
+  --spacing-xs: 4px;
+}
+
+@layer base {
+  body {
+    @apply bg-background text-text-primary font-sans antialiased;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-display;
+  }
+}
+
+@layer components {
+  .glass {
+    @apply bg-surface border border-border rounded-lg shadow-sm;
+  }
+
+  .btn-primary {
+    @apply bg-accent-primary text-white px-4 py-2 rounded-sm font-semibold transition-colors hover:bg-accent-dark;
+  }
+
+  .btn-outline {
+    @apply border border-border text-text-primary px-4 py-2 rounded-sm font-semibold transition-colors hover:bg-surface-hover;
+  }
+
+  .label {
+    @apply text-xs font-bold text-text-tertiary uppercase tracking-wider;
+  }
+
+  .fade-in {
+    animation: fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+
+  .zoom-in-95 {
+    animation: zoomIn95 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes zoomIn95 {
+  from { opacity: 0; transform: scale(0.95) translateY(8px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}

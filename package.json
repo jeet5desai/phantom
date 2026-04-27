@@ -1,0 +1,36 @@
+{
+  "name": "agentkey",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "apps/*",
+    "apps/dashboard",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspace=apps/api",
+    "dev:api": "npm run dev --workspace=apps/api",
+    "dev:dashboard": "npm run dev --workspace=apps/dashboard",
+    "build": "npm run build --workspace=packages/sdk && npm run build --workspace=apps/api && npm run build --workspace=apps/dashboard",
+    "test": "npm run test --workspace=apps/api && npm run test --workspace=packages/sdk",
+    "test:api": "npm run test --workspace=apps/api",
+    "test:sdk": "npm run test --workspace=packages/sdk",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write \"**/*.{ts,json,md,yml,yaml}\"",
+    "format:check": "prettier --check \"**/*.{ts,json,md,yml,yaml}\"",
+    "db:migrate": "npm run db:migrate --workspace=apps/api",
+    "db:seed": "npm run db:seed --workspace=apps/api"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.2.1",
+    "eslint-config-prettier": "^10.1.8",
+    "prettier": "^3.8.3",
+    "typescript": "^5.7.0",
+    "typescript-eslint": "^8.59.0"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}

@@ -1,0 +1,58 @@
+{
+  "stripe": {
+    "name": "Stripe",
+    "description": "Payment processing and billing",
+    "authType": "api_key",
+    "scopes": [
+      { "resource": "stripe:invoices", "actions": ["read", "list", "create", "update"] },
+      { "resource": "stripe:charges", "actions": ["read", "list", "create"] },
+      { "resource": "stripe:refunds", "actions": ["read", "list", "create"] },
+      { "resource": "stripe:customers", "actions": ["read", "list", "create", "update", "delete"] },
+      {
+        "resource": "stripe:subscriptions",
+        "actions": ["read", "list", "create", "update", "cancel"]
+      },
+      { "resource": "stripe:products", "actions": ["read", "list"] },
+      { "resource": "stripe:prices", "actions": ["read", "list"] }
+    ],
+    "docsUrl": "https://stripe.com/docs/api"
+  },
+  "gmail": {
+    "name": "Gmail / Google Workspace",
+    "description": "Email sending and reading",
+    "authType": "oauth2",
+    "scopes": [
+      { "resource": "gmail:messages", "actions": ["read", "list", "send", "delete"] },
+      { "resource": "gmail:drafts", "actions": ["read", "list", "create", "update", "delete"] },
+      { "resource": "gmail:labels", "actions": ["read", "list", "create", "delete"] },
+      { "resource": "gmail:threads", "actions": ["read", "list"] }
+    ],
+    "docsUrl": "https://developers.google.com/gmail/api"
+  },
+  "slack": {
+    "name": "Slack",
+    "description": "Messaging and notifications",
+    "authType": "oauth2",
+    "scopes": [
+      { "resource": "slack:messages", "actions": ["read", "list", "send", "update", "delete"] },
+      { "resource": "slack:channels", "actions": ["read", "list", "create", "archive"] },
+      { "resource": "slack:users", "actions": ["read", "list"] },
+      { "resource": "slack:files", "actions": ["read", "list", "upload"] },
+      { "resource": "slack:reactions", "actions": ["read", "add", "remove"] }
+    ],
+    "docsUrl": "https://api.slack.com/"
+  },
+  "github": {
+    "name": "GitHub",
+    "description": "Code repositories and issues",
+    "authType": "api_key",
+    "scopes": [
+      { "resource": "github:repos", "actions": ["read", "list", "create", "update", "delete"] },
+      { "resource": "github:issues", "actions": ["read", "list", "create", "update", "close"] },
+      { "resource": "github:pulls", "actions": ["read", "list", "create", "update", "merge"] },
+      { "resource": "github:actions", "actions": ["read", "list", "trigger"] },
+      { "resource": "github:releases", "actions": ["read", "list", "create"] }
+    ],
+    "docsUrl": "https://docs.github.com/en/rest"
+  }
+}
