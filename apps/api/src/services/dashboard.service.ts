@@ -9,19 +9,19 @@ export class DashboardService {
     // 1. Active Agents
     const agentsCount = await query(
       'SELECT COUNT(*) FROM agents WHERE org_id = $1 AND revoked_at IS NULL',
-      [orgId]
+      [orgId],
     );
 
     // 2. Total Tokens Issued
     const tokensCount = await query(
       'SELECT COUNT(*) FROM tokens t JOIN agents a ON t.agent_id = a.id WHERE a.org_id = $1',
-      [orgId]
+      [orgId],
     );
 
     // 3. Blocked Escalations (Audit logs with 'denied' result)
     const blockedCount = await query(
       "SELECT COUNT(*) FROM audit_log WHERE org_id = $1 AND result = 'denied'",
-      [orgId]
+      [orgId],
     );
 
     // 4. Audit Chain Integrity
@@ -37,7 +37,7 @@ export class DashboardService {
       totalTokens: parseInt(tokensCount.rows[0].count),
       blockedEscalations: parseInt(blockedCount.rows[0].count),
       auditIntegrity: integrityCheck.valid ? 100 : 0,
-      recentActivity: await this.getRecentActivity(orgId)
+      recentActivity: await this.getRecentActivity(orgId),
     };
   }
 
@@ -58,16 +58,16 @@ export class DashboardService {
        WHERE al.org_id = $1
        ORDER BY al.created_at DESC
        LIMIT 5`,
-      [orgId]
+      [orgId],
     );
 
-    return res.rows.map(row => ({
+    return res.rows.map((row) => ({
       id: row.id,
       type: row.result === 'allowed' ? 'success' : row.result === 'denied' ? 'error' : 'info',
       action: row.action,
       agent: row.agent_name,
       meta: `${row.resource || 'Identity check'} • ${this.formatTime(row.created_at)}`,
-      timestamp: row.created_at
+      timestamp: row.created_at,
     }));
   }
 

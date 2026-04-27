@@ -15,10 +15,20 @@ import ReactFlow, {
   Position
 } from 'reactflow';
 import 'reactflow/dist/style.css';
-import { Shield, Zap, UserRoundCheck, Lock, Globe, Terminal } from 'lucide-react';
+import { Shield, Zap, UserRoundCheck, Lock, Globe, Terminal, LucideIcon } from 'lucide-react';
+
+interface SecurityNodeProps {
+  data: {
+    label: string;
+    name: string;
+    icon: LucideIcon;
+    type: 'trigger' | 'action';
+  };
+  selected?: boolean;
+}
 
 // Custom Node Components
-const SecurityNode = ({ data, selected }: any) => {
+const SecurityNode = ({ data, selected }: SecurityNodeProps) => {
   const Icon = data.icon;
   return (
     <div className={`p-4 rounded-xl border-2 transition-all shadow-lg min-w-[180px] ${

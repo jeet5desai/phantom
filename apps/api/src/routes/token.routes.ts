@@ -38,12 +38,13 @@ export function registerTokenRoutes(app: FastifyInstance) {
       });
 
       return reply.code(201).send({ token });
-    } catch (err: any) {
-      if (err.message === 'AGENT_REVOKED') {
+    } catch (err) {
+      const error = err as Error;
+      if (error.message === 'AGENT_REVOKED') {
         return reply.code(403).send({ error: 'AGENT_REVOKED', message: 'Agent is revoked.' });
       }
-      if (err.message.startsWith('SCOPE_DENIED')) {
-        const denied = err.message.split(':').slice(1).join(':');
+      if (error.message.startsWith('SCOPE_DENIED')) {
+        const denied = error.message.split(':').slice(1).join(':');
         return reply.code(403).send({
           error: 'SCOPE_DENIED',
           message: 'Agent lacks required permissions.',
@@ -114,12 +115,13 @@ export function registerTokenRoutes(app: FastifyInstance) {
       });
 
       return reply.code(201).send({ token, delegatedFrom: body.parentAgentId });
-    } catch (err: any) {
-      if (err.message === 'PARENT_AGENT_REVOKED') {
+    } catch (err) {
+      const error = err as Error;
+      if (error.message === 'PARENT_AGENT_REVOKED') {
         return reply.code(403).send({ error: 'PARENT_AGENT_REVOKED' });
       }
-      if (err.message.startsWith('DELEGATION_DENIED')) {
-        const denied = err.message.split(':').slice(1).join(':');
+      if (error.message.startsWith('DELEGATION_DENIED')) {
+        const denied = error.message.split(':').slice(1).join(':');
         return reply.code(403).send({
           error: 'DELEGATION_DENIED',
           message: 'Sub-agent cannot exceed parent permissions. Privilege escalation blocked.',

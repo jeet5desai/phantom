@@ -24,8 +24,17 @@ const CATEGORY_MAP: Record<string, string> = {
   oauth2: "OAuth 2.0",
 };
 
+interface Integration {
+  id: string;
+  name: string;
+  description: string;
+  authType: string;
+  scopeCount: number;
+  docsUrl?: string;
+}
+
 export default function IntegrationsPage() {
-  const [integrations, setIntegrations] = useState<any[]>([]);
+  const [integrations, setIntegrations] = useState<Integration[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {

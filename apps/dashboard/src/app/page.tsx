@@ -14,9 +14,25 @@ import {
   RefreshCw,
 } from 'lucide-react';
 import { apiRequest } from '@/lib/api';
+import Link from 'next/link';
+
+interface RecentActivity {
+  type: 'success' | 'error' | 'info';
+  action: string;
+  agent: string;
+  meta: string;
+}
+
+interface DashboardStats {
+  activeAgents: number;
+  totalTokens: number;
+  blockedEscalations: number;
+  auditIntegrity: number;
+  recentActivity: RecentActivity[];
+}
 
 export default function Home() {
-  const [stats, setStats] = useState<any>(null);
+  const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
 
   const fetchStats = async () => {
@@ -141,12 +157,12 @@ export default function Home() {
                 Navigate to the Agents tab to manage all registered agents.
               </p>
             </div>
-            <a
+            <Link
               href="/agents"
               className="text-accent-primary font-bold text-sm hover:underline flex items-center gap-1"
             >
               Go to Agents <ChevronRight size={16} />
-            </a>
+            </Link>
           </div>
         </section>
 
@@ -167,12 +183,12 @@ export default function Home() {
                   </div>
                 </div>
               ))
-            ) : (stats?.recentActivity || []).length === 0 ? (
+            ) : (!stats || stats.recentActivity.length === 0) ? (
               <p className="text-center py-8 text-text-tertiary italic text-sm">
                 No recent activity detected.
               </p>
             ) : (
-              stats.recentActivity.map((entry: any, i: number) => {
+              stats?.recentActivity.map((entry: RecentActivity, i: number) => {
                 return (
                   <div key={i} className="flex gap-4 group">
                     <div
@@ -208,12 +224,12 @@ export default function Home() {
             )}
           </div>
           <div className="mt-auto p-lg border-t border-border">
-            <a
+            <Link
               href="/audit-logs"
-              className="w-full flex items-center justify-center gap-2 text-sm font-bold text-accent-primary hover:bg-accent-light py-2 rounded-md transition-colors"
+              className="text-accent-primary font-bold text-sm hover:underline flex items-center gap-1"
             >
               View All Logs <ChevronRight size={16} />
-            </a>
+            </Link>
           </div>
         </section>
       </div>

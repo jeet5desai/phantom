@@ -98,6 +98,12 @@ export interface ScopeCheckResult {
 
 // ─── HTTP Client ────────────────────────────────────────────────────────────
 
+interface SDKError extends Error {
+  status?: number;
+  code?: string;
+  details?: unknown;
+}
+
 class HttpClient {
   constructor(
     private baseUrl: string,
@@ -117,12 +123,12 @@ class HttpClient {
       body: body ? JSON.stringify(body) : undefined,
     });
 
-    const data = (await res.json()) as any;
+    const data = (await res.json()) as Record<string, unknown>;
 
     if (!res.ok) {
-      const error = new Error(data.message || `HTTP ${res.status}`) as any;
+      const error = new Error((data.message as string) || `HTTP ${res.status}`) as SDKError;
       error.status = res.status;
-      error.code = data.error;
+      error.code = data.error as string;
       error.details = data;
       throw error;
     }

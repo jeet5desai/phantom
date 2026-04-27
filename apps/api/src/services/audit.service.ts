@@ -81,7 +81,7 @@ export async function queryAuditLog(
   },
 ): Promise<{ entries: AuditEntry[]; total: number }> {
   const conditions = ['org_id = $1'];
-  const params: any[] = [orgId];
+  const params: unknown[] = [orgId];
   let paramIdx = 2;
 
   if (filters?.agentId) {

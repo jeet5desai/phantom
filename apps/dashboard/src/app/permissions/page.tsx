@@ -42,10 +42,17 @@ const POLICIES = [
   { id: "pol_4", name: "Model Spend Cap", type: "Budget", status: "Disabled", scope: "all:models", description: "Stop agent execution if daily spend exceeds $50." },
 ];
 
+interface Statement {
+  action: string;
+  effect: string;
+  resource: string;
+}
+
 export default function PermissionsPage() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [activeMode, setActiveMode] = useState<'statements' | 'visual'>('statements');
-  const [statements, setStatements] = useState([
+  const [showSaveNotice, setShowSaveNotice] = useState(false);
+  const [statements, setStatements] = useState<Statement[]>([
     { action: 'deny', effect: 'redact', resource: 'pii:*' }
   ]);
 
@@ -57,14 +64,26 @@ export default function PermissionsPage() {
     setStatements(statements.filter((_, i) => i !== index));
   };
 
-  const updateStatement = (index: number, field: string, value: string) => {
+  const updateStatement = (index: number, field: keyof Statement, value: string) => {
     const newStatements = [...statements];
-    (newStatements[index] as any)[field] = value;
+    newStatements[index] = { ...newStatements[index], [field]: value };
     setStatements(newStatements);
+  };
+
+  const handleSavePolicy = () => {
+    // TODO: Implement POST /api/v1/policies backend endpoint
+    setShowSaveNotice(true);
+    setTimeout(() => setShowSaveNotice(false), 4000);
   };
 
   return (
     <div className="flex flex-col gap-lg fade-in">
+      {showSaveNotice && (
+        <div className="fixed top-6 right-6 z-50 p-4 bg-warning-bg border border-warning/30 rounded-xl flex items-center gap-3 shadow-lg animate-in slide-in-from-top-2 duration-300">
+          <AlertTriangle size={18} className="text-warning shrink-0" />
+          <p className="text-sm font-medium text-text-primary">Policy engine is not yet connected. Policies are previewed locally only.</p>
+        </div>
+      )}
       <div className="flex justify-between items-end mb-2">
         <div className="flex flex-col gap-1">
           <h1 className="text-4xl font-display font-bold">Policies & Guardrails</h1>
@@ -208,7 +227,7 @@ export default function PermissionsPage() {
             </div>
           </DialogHeader>
           
-          <form className="flex flex-col gap-8" onSubmit={(e) => e.preventDefault()}>
+          <form className="flex flex-col gap-8" onSubmit={(e) => { e.preventDefault(); handleSavePolicy(); }}>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="flex flex-col gap-2">
                 <label className="label">Policy Name</label>

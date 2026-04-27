@@ -17,8 +17,18 @@ import {
 } from "lucide-react";
 import { apiRequest } from "@/lib/api";
 
+interface AuditLogEntry {
+  id: string;
+  agent_id: string;
+  action: string;
+  result: string;
+  reasoning: string | null;
+  created_at: string;
+  timestamp?: string;
+}
+
 export default function AuditLogsPage() {
-  const [logs, setLogs] = useState<any[]>([]);
+  const [logs, setLogs] = useState<AuditLogEntry[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetchLogs = async () => {
@@ -128,7 +138,7 @@ export default function AuditLogsPage() {
                     <td className="px-lg py-5">
                        <div className="flex items-center gap-3 text-sm text-text-secondary whitespace-nowrap">
                         <Clock size={14} className="text-text-tertiary" />
-                        <span>{new Date(log.created_at || log.timestamp).toLocaleTimeString()}</span>
+                        <span>{new Date(log.created_at || log.timestamp || '').toLocaleTimeString()}</span>
                        </div>
                     </td>
                     <td className="px-lg py-5">

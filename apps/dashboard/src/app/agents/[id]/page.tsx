@@ -1,6 +1,6 @@
 'use client';
 
-import { use, useEffect, useState } from 'react';
+import { use, useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
 import {
   ArrowLeft,
@@ -19,45 +19,36 @@ import {
 } from 'lucide-react';
 import { apiRequest } from '@/lib/api';
 
+interface Agent {
+  id: string;
+  name: string;
+  model: string;
+  version?: string;
+  created_at: string;
+  revoked_at?: string | null;
+}
+
+interface Permission {
+  id: string;
+  resource: string;
+  action: string;
+}
+
+interface TimelineEntry {
+  event: string;
+  time: string;
+  type: string;
+  status: 'success' | 'failure';
+}
+
 export default function AgentDetailsPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
 
   const [loading, setLoading] = useState(true);
-  const [agent, setAgent] = useState<any>(null);
-  const [permissions, setPermissions] = useState<any[]>([]);
-  const [timeline, setTimeline] = useState<any[]>([]);
-
-  useEffect(() => {
-    let isMounted = true;
-    const loadData = async () => {
-      setLoading(true);
-      const [agentRes, permRes, auditRes] = await Promise.all([
-        apiRequest('GET', `/api/v1/agents/${id}`),
-        apiRequest('GET', `/api/v1/agents/${id}/permissions`),
-        apiRequest('GET', `/api/v1/audit?agentId=${id}&limit=5`),
-      ]);
-
-      if (isMounted) {
-        if (agentRes?.agent) setAgent(agentRes.agent);
-        if (permRes?.permissions) setPermissions(permRes.permissions);
-        if (auditRes) {
-          setTimeline(
-            auditRes.map((log: any) => ({
-              event: log.action,
-              time: formatTime(new Date(log.created_at)),
-              type: log.resource || 'system',
-              status: log.result === 'allowed' ? 'success' : 'failure',
-            })),
-          );
-        }
-        setLoading(false);
-      }
-    };
-    loadData();
-    return () => {
-      isMounted = false;
-    };
-  }, [id]);
+  const [agent, setAgent] = useState<Agent | null>(null);
+  const [permissions, setPermissions] = useState<Permission[]>([]);
+  const [timeline, setTimeline] = useState<TimelineEntry[]>([]);
+  const [revoking, setRevoking] = useState(false);
 
   const formatTime = (date: Date) => {
     const seconds = Math.floor((new Date().getTime() - new Date(date).getTime()) / 1000);
@@ -67,6 +58,51 @@ export default function AgentDetailsPage({ params }: { params: Promise<{ id: str
     const hours = Math.floor(minutes / 60);
     if (hours < 24) return `${hours}h ago`;
     return date.toLocaleDateString();
+  };
+
+  const loadData = useCallback(async () => {
+    setLoading(true);
+    const [agentRes, permRes, auditRes] = await Promise.all([
+      apiRequest('GET', `/api/v1/agents/${id}`),
+      apiRequest('GET', `/api/v1/agents/${id}/permissions`),
+      apiRequest('GET', `/api/v1/audit?agentId=${id}&limit=5`),
+    ]);
+
+    if (agentRes?.agent) setAgent(agentRes.agent);
+    if (permRes?.permissions) setPermissions(permRes.permissions);
+    if (auditRes?.entries) {
+      setTimeline(
+        auditRes.entries.map((log: { action: string; created_at: string; resource?: string; result: string }) => ({
+          event: log.action,
+          time: formatTime(new Date(log.created_at)),
+          type: log.resource || 'system',
+          status: log.result === 'allowed' || log.result === 'success' ? 'success' : 'failure',
+        })),
+      );
+    }
+    setLoading(false);
+  }, [id]);
+
+  useEffect(() => {
+    let isMounted = true;
+    loadData().then(() => { if (!isMounted) return; });
+    return () => {
+      isMounted = false;
+    };
+  }, [loadData]);
+
+  const handleRevoke = async () => {
+    const confirmed = window.confirm(
+      'Are you sure you want to revoke this agent? All associated sessions will be terminated. This action cannot be undone.'
+    );
+    if (!confirmed) return;
+
+    setRevoking(true);
+    const result = await apiRequest('POST', `/api/v1/agents/${id}/revoke`);
+    if (result?.agent) {
+      setAgent(result.agent);
+    }
+    setRevoking(false);
   };
 
   if (loading) {
@@ -294,8 +330,13 @@ export default function AgentDetailsPage({ params }: { params: Promise<{ id: str
                 Once an agent is revoked, all its associated sessions will be terminated. This
                 action cannot be undone.
               </p>
-              <button className="w-full py-3 bg-error text-white rounded-md font-bold text-sm hover:bg-error/90 transition-colors shadow-lg shadow-error/10">
-                Revoke Agent
+              <button
+                id="revoke-agent-button"
+                onClick={handleRevoke}
+                disabled={revoking}
+                className="w-full py-3 bg-error text-white rounded-md font-bold text-sm hover:bg-error/90 transition-colors shadow-lg shadow-error/10 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {revoking ? 'Revoking...' : 'Revoke Agent'}
               </button>
             </div>
           )}

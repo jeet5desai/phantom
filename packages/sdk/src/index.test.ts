@@ -160,6 +160,11 @@ describe('AgentKey SDK', () => {
   });
 
   describe('Error Handling', () => {
+    interface SDKError extends Error {
+      status?: number;
+      code?: string;
+    }
+
     it('should throw on non-2xx responses', async () => {
       mockFetch.mockResolvedValueOnce(
         mockResponse(403, { error: 'SCOPE_DENIED', message: 'Forbidden' }),
@@ -180,9 +185,10 @@ describe('AgentKey SDK', () => {
 
       try {
         await ak.agents.get('agt_nonexistent');
-      } catch (err: any) {
-        expect(err.status).toBe(404);
-        expect(err.code).toBe('NOT_FOUND');
+      } catch (err) {
+        const error = err as SDKError;
+        expect(error.status).toBe(404);
+        expect(error.code).toBe('NOT_FOUND');
       }
     });
   });
