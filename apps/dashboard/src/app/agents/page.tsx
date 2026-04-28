@@ -216,7 +216,7 @@ export default function AgentsPage() {
                   <div className="flex flex-wrap gap-2 mt-4">
                     {Object.keys(agent.metadata || {}).map((key) => (
                       <span key={key} className="px-3 py-1 bg-surface-hover border border-border rounded-md text-[11px] font-bold text-text-secondary">
-                        {key}: {agent.metadata[key]}
+                        {key}: {agent.metadata![key]}
                       </span>
                     ))}
                     {(!agent.metadata || Object.keys(agent.metadata).length === 0) && (

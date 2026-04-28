@@ -1,17 +1,14 @@
 import type { FastifyRequest, FastifyReply } from 'fastify';
-import { authenticateApiKey, type Organization } from '../services/organization.service.js';
+import { authenticateByApiKey } from '../services/apikey.service.js';
+import { getOrganization, type Organization } from '../services/organization.service.js';
 
-// Extend Fastify request to carry the authenticated org
 declare module 'fastify' {
   interface FastifyRequest {
     org: Organization;
+    apiKeyId: string;
   }
 }
 
-/**
- * Auth middleware — extracts API key from Authorization header
- * and attaches the org to the request.
- */
 export async function authMiddleware(request: FastifyRequest, reply: FastifyReply) {
   const authHeader = request.headers.authorization;
 
@@ -23,14 +20,23 @@ export async function authMiddleware(request: FastifyRequest, reply: FastifyRepl
   }
 
   const apiKey = authHeader.slice(7);
-  const org = await authenticateApiKey(apiKey);
+  const authResult = await authenticateByApiKey(apiKey);
 
-  if (!org) {
+  if (!authResult) {
     return reply.code(401).send({
       error: 'UNAUTHORIZED',
       message: 'Invalid API key.',
     });
   }
 
+  const org = await getOrganization(authResult.orgId);
+  if (!org) {
+    return reply.code(401).send({
+      error: 'UNAUTHORIZED',
+      message: 'Organization not found.',
+    });
+  }
+
   request.org = org;
+  request.apiKeyId = authResult.keyId;
 }

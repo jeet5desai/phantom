@@ -1,21 +1,21 @@
-import type pg from 'pg';
-import { query, pool } from '../db/pool.js';
+import prisma from '../db/prisma.js';
 import { computeAuditHash } from '../lib/crypto.js';
+import type { Prisma } from '@prisma/client';
 
 export interface AuditEntry {
-  id: number;
-  org_id: string;
-  agent_id: string;
-  credential_id: string | null;
-  token_id: string | null;
+  id: string;
+  orgId: string;
+  agentId: string;
+  credentialId: string | null;
+  tokenId: string | null;
   action: string;
   resource: string | null;
   result: string;
   reasoning: string | null;
-  metadata: Record<string, unknown>;
+  metadata: any;
   hash: string;
-  prev_hash: string | null;
-  created_at: Date;
+  prevHash: string | null;
+  createdAt: Date;
 }
 
 export interface LogActionInput {
@@ -31,22 +31,16 @@ export interface LogActionInput {
 }
 
 /** Append an immutable entry to the audit ledger. */
-export async function logAction(
-  input: LogActionInput,
-  client?: pg.PoolClient,
-): Promise<AuditEntry> {
-  const txClient = client || (await pool.connect());
-  const createdTx = !client;
-
-  try {
-    if (createdTx) await txClient.query('BEGIN');
-
+export async function logAction(input: LogActionInput): Promise<AuditEntry> {
+  return prisma.$transaction(async (tx) => {
     // Get previous hash for chaining and lock the last row
-    const prevResult = await txClient.query<{ hash: string }>(
-      `SELECT hash FROM audit_log WHERE org_id = $1 ORDER BY id DESC LIMIT 1 FOR UPDATE`,
-      [input.orgId],
-    );
-    const prevHash = prevResult.rows[0]?.hash || null;
+    // Note: raw query is used here because Prisma doesn't support 'FOR UPDATE' natively on findFirst yet
+    // without using extensions or raw queries in some versions.
+    // In Prisma 5, we can use $queryRaw for 'FOR UPDATE'.
+    const prevResults = await tx.$queryRaw<{ hash: string }[]>`
+      SELECT hash FROM audit_log WHERE org_id = ${input.orgId} ORDER BY id DESC LIMIT 1 FOR UPDATE
+    `;
+    const prevHash = prevResults[0]?.hash || null;
 
     // Compute hash for this entry
     const hash = computeAuditHash({
@@ -57,33 +51,28 @@ export async function logAction(
       prev_hash: prevHash || undefined,
     });
 
-    const result = await txClient.query<AuditEntry>(
-      `INSERT INTO audit_log (org_id, agent_id, credential_id, token_id, action, resource, result, reasoning, metadata, hash, prev_hash)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
-       RETURNING *`,
-      [
-        input.orgId,
-        input.agentId,
-        input.credentialId || null,
-        input.tokenId || null,
-        input.action,
-        input.resource || null,
-        input.result,
-        input.reasoning || null,
-        JSON.stringify(input.metadata || {}),
+    const entry = await tx.auditLog.create({
+      data: {
+        orgId: input.orgId,
+        agentId: input.agentId,
+        credentialId: input.credentialId || null,
+        tokenId: input.tokenId || null,
+        action: input.action,
+        resource: input.resource || null,
+        result: input.result,
+        reasoning: input.reasoning || null,
+        metadata: (input.metadata || {}) as Prisma.JsonObject,
         hash,
         prevHash,
-      ],
-    );
+      },
+    });
 
-    if (createdTx) await txClient.query('COMMIT');
-    return result.rows[0];
-  } catch (err) {
-    if (createdTx) await txClient.query('ROLLBACK');
-    throw err;
-  } finally {
-    if (createdTx) txClient.release();
-  }
+    return {
+      ...entry,
+      id: entry.id.toString(),
+      metadata: entry.metadata as any,
+    };
+  });
 }
 
 /** Query audit log for an org with filters. */
@@ -97,68 +86,60 @@ export async function queryAuditLog(
     offset?: number;
   },
 ): Promise<{ entries: AuditEntry[]; total: number }> {
-  const conditions = ['org_id = $1'];
-  const params: unknown[] = [orgId];
-  let paramIdx = 2;
+  const where: Prisma.AuditLogWhereInput = {
+    orgId,
+  };
 
-  if (filters?.agentId) {
-    conditions.push(`agent_id = $${paramIdx++}`);
-    params.push(filters.agentId);
-  }
-  if (filters?.action) {
-    conditions.push(`action = $${paramIdx++}`);
-    params.push(filters.action);
-  }
-  if (filters?.result) {
-    conditions.push(`result = $${paramIdx++}`);
-    params.push(filters.result);
-  }
+  if (filters?.agentId) where.agentId = filters.agentId;
+  if (filters?.action) where.action = filters.action;
+  if (filters?.result) where.result = filters.result;
 
-  const where = conditions.join(' AND ');
   const limit = filters?.limit || 50;
   const offset = filters?.offset || 0;
 
-  const [dataResult, countResult] = await Promise.all([
-    query<AuditEntry>(
-      `SELECT * FROM audit_log WHERE ${where} ORDER BY id DESC LIMIT $${paramIdx} OFFSET $${paramIdx + 1}`,
-      [...params, limit, offset],
-    ),
-    query<{ count: string }>(`SELECT COUNT(*) as count FROM audit_log WHERE ${where}`, params),
+  const [logs, total] = await Promise.all([
+    prisma.auditLog.findMany({
+      where,
+      orderBy: { id: 'desc' },
+      take: limit,
+      skip: offset,
+    }),
+    prisma.auditLog.count({ where }),
   ]);
 
   return {
-    entries: dataResult.rows,
-    total: parseInt(countResult.rows[0].count, 10),
+    entries: logs.map((l) => ({ ...l, id: l.id.toString(), metadata: l.metadata as any })),
+    total,
   };
 }
 
 /** Verify the integrity of the audit chain for an org. */
 export async function verifyAuditChain(orgId: string): Promise<{
   valid: boolean;
-  brokenAt?: number;
+  brokenAt?: string;
   totalEntries: number;
 }> {
-  const result = await query<AuditEntry>(
-    `SELECT * FROM audit_log WHERE org_id = $1 ORDER BY id ASC`,
-    [orgId],
-  );
+  const logs = await prisma.auditLog.findMany({
+    where: { orgId },
+    orderBy: { id: 'asc' },
+  });
 
-  for (let i = 0; i < result.rows.length; i++) {
-    const current = result.rows[i];
-    const previous = i > 0 ? result.rows[i - 1] : null;
+  for (let i = 0; i < logs.length; i++) {
+    const current = logs[i];
+    const previous = i > 0 ? logs[i - 1] : null;
 
     const expectedHash = computeAuditHash({
-      agent_id: current.agent_id,
+      agent_id: current.agentId,
       action: current.action,
       resource: current.resource || undefined,
       result: current.result,
       prev_hash: previous?.hash,
     });
 
-    if (current.hash !== expectedHash || (i > 0 && current.prev_hash !== previous!.hash)) {
-      return { valid: false, brokenAt: current.id, totalEntries: result.rows.length };
+    if (current.hash !== expectedHash || (i > 0 && current.prevHash !== previous!.hash)) {
+      return { valid: false, brokenAt: current.id.toString(), totalEntries: logs.length };
     }
   }
 
-  return { valid: true, totalEntries: result.rows.length };
+  return { valid: true, totalEntries: logs.length };
 }

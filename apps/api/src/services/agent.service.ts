@@ -1,18 +1,19 @@
-import { query } from '../db/pool.js';
+import prisma from '../db/prisma.js';
 import { generateId, generateAgentKeyPair } from '../lib/crypto.js';
+import type { Prisma } from '@prisma/client';
 
 export interface Agent {
   id: string;
-  org_id: string;
+  orgId: string;
   name: string;
   model: string | null;
-  version: string;
-  public_key: string | null;
-  metadata: Record<string, unknown>;
-  created_by: string | null;
-  created_at: Date;
-  revoked_at: Date | null;
-  parent_agent_id: string | null;
+  version: string | null;
+  publicKey: string | null;
+  metadata: any;
+  createdBy: string | null;
+  createdAt: Date;
+  revokedAt: Date | null;
+  parentAgentId: string | null;
 }
 
 export interface CreateAgentInput {
@@ -32,58 +33,69 @@ export async function createAgent(
   const id = generateId('agt');
   const { publicKey, privateKey } = generateAgentKeyPair();
 
-  const result = await query<Agent>(
-    `INSERT INTO agents (id, org_id, name, model, version, public_key, metadata, created_by, parent_agent_id)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-     RETURNING *`,
-    [
+  const agent = await prisma.agent.create({
+    data: {
       id,
-      input.orgId,
-      input.name,
-      input.model || null,
-      input.version || '1.0.0',
+      orgId: input.orgId,
+      name: input.name,
+      model: input.model || null,
+      version: input.version || '1.0.0',
       publicKey,
-      JSON.stringify(input.metadata || {}),
-      input.createdBy || null,
-      input.parentAgentId || null,
-    ],
-  );
+      metadata: (input.metadata || {}) as Prisma.JsonObject,
+      createdBy: input.createdBy || null,
+      parentAgentId: input.parentAgentId || null,
+    },
+  });
 
-  return { ...result.rows[0], privateKey };
+  return { ...agent, privateKey };
 }
 
 /** Get agent by ID, only if it belongs to the given org. */
 export async function getAgent(orgId: string, agentId: string): Promise<Agent | null> {
-  const result = await query<Agent>(`SELECT * FROM agents WHERE id = $1 AND org_id = $2`, [
-    agentId,
-    orgId,
-  ]);
-  return result.rows[0] || null;
+  return prisma.agent.findFirst({
+    where: {
+      id: agentId,
+      orgId,
+    },
+  });
 }
 
 /** List all agents for an org. */
 export async function listAgents(orgId: string, includeRevoked = false): Promise<Agent[]> {
-  const sql = includeRevoked
-    ? `SELECT * FROM agents WHERE org_id = $1 ORDER BY created_at DESC`
-    : `SELECT * FROM agents WHERE org_id = $1 AND revoked_at IS NULL ORDER BY created_at DESC`;
-
-  const result = await query<Agent>(sql, [orgId]);
-  return result.rows;
+  return prisma.agent.findMany({
+    where: {
+      orgId,
+      revokedAt: includeRevoked ? undefined : null,
+    },
+    orderBy: {
+      createdAt: 'desc',
+    },
+  });
 }
 
 /** Revoke an agent — sets revoked_at timestamp. */
 export async function revokeAgent(orgId: string, agentId: string): Promise<Agent | null> {
-  const result = await query<Agent>(
-    `UPDATE agents SET revoked_at = NOW() WHERE id = $1 AND org_id = $2 AND revoked_at IS NULL RETURNING *`,
-    [agentId, orgId],
-  );
-  return result.rows[0] || null;
+  return prisma.agent
+    .update({
+      where: {
+        id: agentId,
+        orgId,
+        revokedAt: null,
+      },
+      data: {
+        revokedAt: new Date(),
+      },
+    })
+    .catch(() => null);
 }
 
 /** Check if an agent is active (exists and not revoked). */
 export async function isAgentActive(agentId: string): Promise<boolean> {
-  const result = await query(`SELECT 1 FROM agents WHERE id = $1 AND revoked_at IS NULL`, [
-    agentId,
-  ]);
-  return result.rowCount! > 0;
+  const count = await prisma.agent.count({
+    where: {
+      id: agentId,
+      revokedAt: null,
+    },
+  });
+  return count > 0;
 }

@@ -254,7 +254,7 @@ export default function VaultPage() {
                       </td>
                       <td className="px-lg py-5">
                         <span className="text-sm text-text-secondary">
-                          {hasRotated ? formatTime(cred.rotated_at) : '—'}
+                          {cred.rotated_at ? formatTime(cred.rotated_at) : '—'}
                         </span>
                       </td>
                       <td className="px-lg py-5 text-right">

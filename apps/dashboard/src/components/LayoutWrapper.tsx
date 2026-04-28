@@ -1,35 +1,51 @@
-"use client";
+'use client';
 
-import { usePathname } from "next/navigation";
-import { useState, useEffect } from "react";
-import SidebarNav from "@/components/SidebarNav";
-import TopBar from "@/components/TopBar";
-import { ShieldCheck } from "lucide-react";
-import { apiRequest } from "@/lib/api";
+import { usePathname } from 'next/navigation';
+import { useState, useEffect } from 'react';
+import SidebarNav from '@/components/SidebarNav';
+import TopBar from '@/components/TopBar';
+import { ShieldCheck } from 'lucide-react';
+import { apiRequest } from '@/lib/api';
 
-export default function LayoutWrapper({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function LayoutWrapper({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const isAuthPage = pathname === "/login" || pathname === "/signup";
-  const [orgName, setOrgName] = useState("Loading...");
+  const isAuthPage =
+    pathname.startsWith('/sign-in') ||
+    pathname.startsWith('/sign-up') ||
+    pathname.startsWith('/sso-callback');
+  const [orgName, setOrgName] = useState('Loading...');
+  const [isCheckingOrg, setIsCheckingOrg] = useState(!isAuthPage);
 
   useEffect(() => {
     if (!isAuthPage) {
-      apiRequest('GET', '/api/v1/dashboard/stats').then(data => {
-        if (data?.orgName) {
-          setOrgName(data.orgName);
-        } else {
-          setOrgName("Demo Workspace");
-        }
-      });
+      apiRequest('GET', '/api/v1/dashboard/stats')
+        .then((data) => {
+          if (data?.orgName) {
+            setOrgName(data.orgName);
+          } else {
+            setOrgName('Demo Workspace');
+          }
+          setIsCheckingOrg(false);
+        })
+        .catch((err) => {
+          console.error('[Org Check Error]', err);
+          setOrgName('Demo Workspace');
+          setIsCheckingOrg(false);
+        });
     }
   }, [isAuthPage]);
 
+
   if (isAuthPage) {
     return <>{children}</>;
+  }
+
+  if (isCheckingOrg) {
+    return (
+      <div className="flex min-h-screen w-full items-center justify-center bg-background">
+        <div className="w-8 h-8 border-4 border-accent-primary border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    );
   }
 
   return (
@@ -40,11 +56,11 @@ export default function LayoutWrapper({
           <ShieldCheck className="text-accent-primary" size={32} />
           <span className="text-xl font-display font-bold tracking-tight">AgentKey</span>
         </div>
-        
+
         <div className="flex-1 px-4 py-2">
           <SidebarNav />
         </div>
-        
+
         <div className="p-4 border-t border-border">
           <div className="glass p-3 flex items-center gap-3 bg-background">
             <div className="w-10 h-10 rounded-md bg-accent-primary text-white flex items-center justify-center font-bold text-lg ">
@@ -52,19 +68,19 @@ export default function LayoutWrapper({
             </div>
             <div className="flex flex-col min-w-0">
               <span className="text-sm font-bold text-text-primary truncate">{orgName}</span>
-              <span className="text-[11px] font-bold text-text-tertiary uppercase tracking-wider">Pro Plan</span>
+              <span className="text-[11px] font-bold text-text-tertiary uppercase tracking-wider">
+                Pro Plan
+              </span>
             </div>
           </div>
         </div>
       </aside>
-      
+
       {/* Main Content Area */}
       <div className="flex-1 ml-64 flex flex-col">
         <TopBar />
         <main className="p-lg">
-          <div className="max-w-7xl mx-auto">
-            {children}
-          </div>
+          <div className="max-w-7xl mx-auto">{children}</div>
         </main>
       </div>
     </div>

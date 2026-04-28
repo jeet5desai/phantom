@@ -1,7 +1,7 @@
-import { query, getClient } from '../db/pool.js';
+import prisma from '../db/prisma.js';
 import { generateId } from '../lib/crypto.js';
 import { checkScopes, validateDelegation } from './permission.service.js';
-import { isAgentActive, getAgent } from './agent.service.js';
+import { isAgentActive } from './agent.service.js';
 import { logAction } from './audit.service.js';
 import {
   cacheRevokedToken,
@@ -9,15 +9,16 @@ import {
   isTokenRevokedFast,
   isAgentRevokedFast,
 } from '../db/redis.js';
+import type { Prisma } from '@prisma/client';
 
 export interface Token {
   id: string;
-  agent_id: string;
-  credential_id: string | null;
+  agentId: string;
+  credentialId: string | null;
   scopes: string[];
-  expires_at: Date;
+  expiresAt: Date;
   revoked: boolean;
-  created_at: Date;
+  createdAt: Date;
 }
 
 export interface CreateTokenInput {
@@ -61,38 +62,33 @@ export async function createToken(input: CreateTokenInput): Promise<Token> {
   const id = generateId('tok');
   const expiresAt = new Date(Date.now() + input.ttl * 1000);
 
-  const client = await getClient();
-  try {
-    await client.query('BEGIN');
-
-    const result = await client.query<Token>(
-      `INSERT INTO tokens (id, agent_id, credential_id, scopes, expires_at)
-       VALUES ($1, $2, $3, $4, $5)
-       RETURNING *`,
-      [id, input.agentId, input.credentialId || null, JSON.stringify(input.scopes), expiresAt],
-    );
-
-    await logAction(
-      {
-        orgId: input.orgId,
+  return prisma.$transaction(async (tx) => {
+    const token = await tx.token.create({
+      data: {
+        id,
         agentId: input.agentId,
-        tokenId: id,
-        action: 'token.create',
-        resource: input.scopes.join(', '),
-        result: 'success',
-        reasoning: `Token issued, TTL=${input.ttl}s`,
+        credentialId: input.credentialId || null,
+        scopes: input.scopes as Prisma.JsonArray,
+        expiresAt,
       },
-      client,
-    );
+    });
 
-    await client.query('COMMIT');
-    return result.rows[0];
-  } catch (err) {
-    await client.query('ROLLBACK');
-    throw err;
-  } finally {
-    client.release();
-  }
+    await logAction({
+      orgId: input.orgId,
+      agentId: input.agentId,
+      tokenId: id,
+      action: 'token.create',
+      resource: input.scopes.join(', '),
+      result: 'success',
+      reasoning: `Token issued, TTL=${input.ttl}s`,
+    });
+
+    return {
+      ...token,
+      scopes: token.scopes as string[],
+      revoked: token.revoked || false
+    };
+  });
 }
 
 /** Verify a token — checks Redis cache first, then DB. */
@@ -105,48 +101,71 @@ export async function verifyToken(tokenId: string): Promise<{
   const cachedRevoked = await isTokenRevokedFast(tokenId);
   if (cachedRevoked === true) return { valid: false, reason: 'Token revoked' };
 
-  const result = await query<Token>(`SELECT * FROM tokens WHERE id = $1`, [tokenId]);
+  const token = await prisma.token.findUnique({
+    where: { id: tokenId },
+  });
 
-  const token = result.rows[0];
   if (!token) return { valid: false, reason: 'Token not found' };
   if (token.revoked) return { valid: false, reason: 'Token revoked' };
-  if (new Date(token.expires_at) < new Date()) return { valid: false, reason: 'Token expired' };
+  if (new Date(token.expiresAt) < new Date()) return { valid: false, reason: 'Token expired' };
 
   // Check agent revocation (Redis fast path, then DB)
-  const agentCachedRevoked = await isAgentRevokedFast(token.agent_id);
+  const agentCachedRevoked = await isAgentRevokedFast(token.agentId);
   if (agentCachedRevoked === true) return { valid: false, reason: 'Agent revoked' };
 
-  const active = await isAgentActive(token.agent_id);
+  const active = await isAgentActive(token.agentId);
   if (!active) return { valid: false, reason: 'Agent revoked' };
 
-  return { valid: true, token };
+  return {
+    valid: true,
+    token: {
+      ...token,
+      scopes: token.scopes as string[],
+      revoked: token.revoked || false
+    }
+  };
 }
 
 /** Revoke a specific token. */
 export async function revokeToken(orgId: string, tokenId: string): Promise<boolean> {
-  const result = await query(
-    `
-    UPDATE tokens SET revoked = TRUE 
-    FROM agents 
-    WHERE tokens.agent_id = agents.id 
-      AND tokens.id = $1 
-      AND agents.org_id = $2 
-      AND tokens.revoked = FALSE
-  `,
-    [tokenId, orgId],
-  );
-  if (result.rowCount! > 0) {
-    await cacheRevokedToken(tokenId, 86400); // Cache for 24h
+  try {
+    const result = await prisma.token.update({
+      where: {
+        id: tokenId,
+        agent: {
+          orgId,
+        },
+        revoked: false,
+      },
+      data: {
+        revoked: true,
+      },
+    });
+
+    if (result) {
+      await cacheRevokedToken(tokenId, 86400); // Cache for 24h
+      return true;
+    }
+    return false;
+  } catch {
+    return false;
   }
-  return result.rowCount! > 0;
 }
 
 /** Revoke ALL tokens for an agent (kill switch). */
 export async function revokeAllTokens(orgId: string, agentId: string): Promise<number> {
-  const result = await query(
-    `UPDATE tokens SET revoked = TRUE WHERE agent_id = $1 AND revoked = FALSE`,
-    [agentId],
-  );
+  const result = await prisma.token.updateMany({
+    where: {
+      agentId,
+      agent: {
+        orgId,
+      },
+      revoked: false,
+    },
+    data: {
+      revoked: true,
+    },
+  });
 
   // Cache agent-level revocation in Redis for fast verification
   await cacheRevokedAgent(agentId);
@@ -159,7 +178,7 @@ export async function revokeAllTokens(orgId: string, agentId: string): Promise<n
     reasoning: 'Kill switch activated — all tokens revoked',
   });
 
-  return result.rowCount!;
+  return result.count;
 }
 
 /**
@@ -193,3 +212,4 @@ export async function createDelegatedToken(
   const { parentAgentId, ...createInput } = input;
   return createToken(createInput);
 }
+

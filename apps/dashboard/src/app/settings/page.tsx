@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useUser, useClerk } from '@clerk/nextjs';
 import {
   User,
   Lock,
@@ -13,6 +14,7 @@ import {
   ChevronRight,
   LogOut,
   Plus,
+  Loader2,
 } from 'lucide-react';
 
 const TABS = [
@@ -24,14 +26,24 @@ const TABS = [
 ];
 
 export default function SettingsPage() {
+  const { user, isLoaded } = useUser();
+  const { signOut } = useClerk();
   const [activeTab, setActiveTab] = useState('general');
+
+  if (!isLoaded) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <Loader2 className="w-8 h-8 animate-spin text-accent-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col gap-lg fade-in">
       <div className="flex flex-col gap-1 mb-2">
         <h1 className="text-4xl font-display font-bold">Settings</h1>
         <p className="text-text-secondary text-lg">
-          Manage your organization preferences, security, and team members.
+          Manage your account preferences, security, and team members.
         </p>
       </div>
 
@@ -57,7 +69,10 @@ export default function SettingsPage() {
             );
           })}
           <div className="mt-8 pt-4 border-t border-border">
-            <button className="flex items-center gap-3 px-4 py-3 rounded-lg text-error hover:bg-error-bg transition-all w-full text-left font-bold text-sm">
+            <button
+              onClick={() => signOut()}
+              className="flex items-center gap-3 px-4 py-3 rounded-lg text-error hover:bg-error-bg transition-all w-full text-left font-bold text-sm"
+            >
               <LogOut size={20} />
               <span>Sign Out</span>
             </button>
@@ -77,7 +92,18 @@ export default function SettingsPage() {
 
               <div className="flex items-center gap-8">
                 <div className="w-24 h-24 bg-accent-light rounded-full flex items-center justify-center border-4 border-surface overflow-hidden relative group cursor-pointer">
-                  <span className="text-3xl font-display font-bold text-accent-primary">JD</span>
+                  {user?.imageUrl ? (
+                    <img
+                      src={user.imageUrl}
+                      alt={user.fullName || ''}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <span className="text-3xl font-display font-bold text-accent-primary">
+                      {user?.firstName?.charAt(0)}
+                      {user?.lastName?.charAt(0)}
+                    </span>
+                  )}
                   <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                     <Smartphone size={24} className="text-white" />
                   </div>
@@ -93,15 +119,27 @@ export default function SettingsPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="flex flex-col gap-2">
                   <label className="label">Full Name</label>
-                  <input type="text" defaultValue="John Doe" className="w-full px-4 py-3 bg-background border border-border rounded-md outline-none focus:border-accent-primary transition-colors text-sm font-medium" />
+                  <input
+                    type="text"
+                    defaultValue={user?.fullName || ''}
+                    className="w-full px-4 py-3 bg-background border border-border rounded-md outline-none focus:border-accent-primary transition-colors text-sm font-medium"
+                  />
                 </div>
                 <div className="flex flex-col gap-2">
                   <label className="label">Email Address</label>
-                  <input type="email" defaultValue="john@phantom.ai" className="w-full px-4 py-3 bg-background border border-border rounded-md outline-none focus:border-accent-primary transition-colors text-sm font-medium" />
+                  <input
+                    type="email"
+                    defaultValue={user?.primaryEmailAddress?.emailAddress || ''}
+                    className="w-full px-4 py-3 bg-background border border-border rounded-md outline-none focus:border-accent-primary transition-colors text-sm font-medium"
+                  />
                 </div>
                 <div className="flex flex-col gap-2">
-                  <label className="label">Organization</label>
-                  <input type="text" defaultValue="Phantom AI" className="w-full px-4 py-3 bg-background border border-border rounded-md outline-none focus:border-accent-primary transition-colors text-sm font-medium" />
+                  <label className="label">Username</label>
+                  <input
+                    type="text"
+                    defaultValue={user?.username || ''}
+                    className="w-full px-4 py-3 bg-background border border-border rounded-md outline-none focus:border-accent-primary transition-colors text-sm font-medium"
+                  />
                 </div>
                 <div className="flex flex-col gap-2">
                   <label className="label">Timezone</label>
@@ -117,9 +155,7 @@ export default function SettingsPage() {
                 <button className="px-6 py-3 font-bold text-text-secondary hover:bg-surface-hover rounded-md transition-colors">
                   Discard
                 </button>
-                <button className="btn-primary px-8 ">
-                  Save Changes
-                </button>
+                <button className="btn-primary px-8 ">Save Changes</button>
               </div>
             </div>
           )}
@@ -141,7 +177,7 @@ export default function SettingsPage() {
                     </div>
                     <div className="flex flex-col">
                       <span className="font-bold">Password</span>
-                      <span className="text-xs text-text-secondary">Last changed 4 months ago</span>
+                      <span className="text-xs text-text-secondary">Update your password</span>
                     </div>
                   </div>
                   <ChevronRight
@@ -157,8 +193,8 @@ export default function SettingsPage() {
                     </div>
                     <div className="flex flex-col">
                       <span className="font-bold">Two-Factor Authentication</span>
-                      <span className="text-xs text-success font-bold uppercase tracking-tighter">
-                        Enabled • Authenticator App
+                      <span className="text-xs text-text-secondary">
+                        Secure your account with 2FA
                       </span>
                     </div>
                   </div>
@@ -175,9 +211,7 @@ export default function SettingsPage() {
                     </div>
                     <div className="flex flex-col">
                       <span className="font-bold">Session Management</span>
-                      <span className="text-xs text-text-secondary">
-                        3 active sessions in 2 locations
-                      </span>
+                      <span className="text-xs text-text-secondary">Manage active sessions</span>
                     </div>
                   </div>
                   <ChevronRight
@@ -242,8 +276,6 @@ export default function SettingsPage() {
           )}
         </main>
       </div>
-
-
     </div>
   );
 }

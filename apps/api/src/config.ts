@@ -56,5 +56,8 @@ export const config = {
    */
   vaultEncryptionKey: vaultKey || crypto.randomBytes(32).toString('hex'),
 
+  clerkPublishableKey: process.env.CLERK_PUBLISHABLE_KEY || '',
+  clerkSecretKey: process.env.CLERK_SECRET_KEY || '',
+
   env: (process.env.NODE_ENV || 'development') as 'development' | 'production' | 'test',
 } as const;

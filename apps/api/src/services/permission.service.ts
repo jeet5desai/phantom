@@ -1,13 +1,13 @@
-import { query } from '../db/pool.js';
+import prisma from '../db/prisma.js';
 import { generateId } from '../lib/crypto.js';
 
 export interface Permission {
   id: string;
-  agent_id: string;
+  agentId: string;
   resource: string;
   action: string;
-  requires_approval: boolean;
-  created_at: Date;
+  requiresApproval: boolean;
+  createdAt: Date;
 }
 
 /** Grant a permission to an agent. */
@@ -17,44 +17,66 @@ export async function grantPermission(
   action: string,
   requiresApproval = false,
 ): Promise<Permission> {
-  const id = generateId('perm');
+  const existing = await prisma.permission.findUnique({
+    where: {
+      agentId_resource_action: {
+        agentId,
+        resource,
+        action,
+      },
+    },
+  });
 
-  const result = await query<Permission>(
-    `INSERT INTO permissions (id, agent_id, resource, action, requires_approval)
-     VALUES ($1, $2, $3, $4, $5)
-     ON CONFLICT (agent_id, resource, action) DO NOTHING
-     RETURNING *`,
-    [id, agentId, resource, action, requiresApproval],
-  );
-
-  // If already exists, return existing
-  if (!result.rows[0]) {
-    const existing = await query<Permission>(
-      `SELECT * FROM permissions WHERE agent_id = $1 AND resource = $2 AND action = $3`,
-      [agentId, resource, action],
-    );
-    return existing.rows[0];
+  if (existing) {
+    return {
+      ...existing,
+      requiresApproval: existing.requiresApproval || false,
+    };
   }
 
-  return result.rows[0];
+  const id = generateId('perm');
+  const perm = await prisma.permission.create({
+    data: {
+      id,
+      agentId,
+      resource,
+      action,
+      requiresApproval,
+    },
+  });
+
+  return {
+    ...perm,
+    requiresApproval: perm.requiresApproval || false,
+  };
 }
 
 /** Revoke a specific permission. */
 export async function revokePermission(agentId: string, permissionId: string): Promise<boolean> {
-  const result = await query(`DELETE FROM permissions WHERE id = $1 AND agent_id = $2`, [
-    permissionId,
-    agentId,
-  ]);
-  return result.rowCount! > 0;
+  try {
+    await prisma.permission.delete({
+      where: {
+        id: permissionId,
+        agentId,
+      },
+    });
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 /** List all permissions for an agent. */
 export async function listPermissions(agentId: string): Promise<Permission[]> {
-  const result = await query<Permission>(
-    `SELECT * FROM permissions WHERE agent_id = $1 ORDER BY resource, action`,
-    [agentId],
-  );
-  return result.rows;
+  const perms = await prisma.permission.findMany({
+    where: { agentId },
+    orderBy: [{ resource: 'asc' }, { action: 'asc' }],
+  });
+
+  return perms.map((p) => ({
+    ...p,
+    requiresApproval: p.requiresApproval || false,
+  }));
 }
 
 /**

@@ -2,7 +2,6 @@ import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import rateLimit from '@fastify/rate-limit';
 import { config } from './config.js';
-import { runMigrations } from './db/migrate.js';
 import { registerOrgRoutes } from './routes/organization.routes.js';
 import { registerAgentRoutes } from './routes/agent.routes.js';
 import { registerCredentialRoutes } from './routes/credential.routes.js';
@@ -11,10 +10,13 @@ import { registerTokenRoutes } from './routes/token.routes.js';
 import { registerAuditRoutes } from './routes/audit.routes.js';
 import { registerIntegrationRoutes } from './routes/integration.routes.js';
 import { registerDashboardRoutes } from './routes/dashboard.routes.js';
+import { registerApiKeyRoutes } from './routes/apikey.routes.js';
 
 const app = Fastify({
   logger: config.env !== 'test',
 });
+
+import { clerkPlugin } from '@clerk/fastify';
 
 // ─── Plugins ────────────────────────────────────────────────────────────────
 
@@ -23,6 +25,7 @@ await app.register(rateLimit, {
   max: 100,
   timeWindow: '1 minute',
 });
+await app.register(clerkPlugin);
 
 // ─── Global error handler ───────────────────────────────────────────────────
 
@@ -86,14 +89,16 @@ app.register(async (instance) => {
   registerDashboardRoutes(instance);
 });
 
+app.register(async (instance) => {
+  registerApiKeyRoutes(instance);
+});
+
 // ─── Start ──────────────────────────────────────────────────────────────────
 
 async function start() {
   try {
-    // Run migrations on startup
-    await runMigrations();
-
     await app.listen({ port: config.port, host: config.host });
+
     console.log(`
 ╔═══════════════════════════════════════════╗
 ║                                           ║

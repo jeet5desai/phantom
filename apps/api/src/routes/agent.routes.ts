@@ -31,7 +31,7 @@ export function registerAgentRoutes(app: FastifyInstance) {
           message: 'Parent agent not found in your organization.',
         });
       }
-      if (parent.revoked_at) {
+      if (parent.revokedAt) {
         return reply
           .code(400)
           .send({ error: 'PARENT_REVOKED', message: 'Parent agent is revoked.' });

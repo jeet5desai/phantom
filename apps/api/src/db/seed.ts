@@ -2,15 +2,14 @@ import { createOrganization } from '../services/organization.service.js';
 import { createAgent } from '../services/agent.service.js';
 import { storeCredential } from '../services/credential.service.js';
 import { grantPermission } from '../services/permission.service.js';
-import { runMigrations } from './migrate.js';
-
 /**
  * Seed the database with sample data for local development.
  * Creates a demo org, agent, credential, and permissions.
  */
 async function seed() {
-  console.log('[Seed] Running migrations first...');
-  await runMigrations();
+  console.log('[Seed] Starting seeding process...');
+
+
 
   console.log('[Seed] Creating demo organization...');
   const { org, apiKey } = await createOrganization('Demo Corp');

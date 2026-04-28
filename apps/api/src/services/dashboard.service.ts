@@ -1,4 +1,4 @@
-import { query } from '../db/pool.js';
+import prisma from '../db/prisma.js';
 import { verifyAuditChain } from './audit.service.js';
 
 export class DashboardService {
@@ -7,35 +7,45 @@ export class DashboardService {
    */
   async getStats(orgId: string) {
     // 1. Active Agents
-    const agentsCount = await query(
-      'SELECT COUNT(*) FROM agents WHERE org_id = $1 AND revoked_at IS NULL',
-      [orgId],
-    );
+    const activeAgentsCount = await prisma.agent.count({
+      where: {
+        orgId,
+        revokedAt: null,
+      },
+    });
 
     // 2. Total Tokens Issued
-    const tokensCount = await query(
-      'SELECT COUNT(*) FROM tokens t JOIN agents a ON t.agent_id = a.id WHERE a.org_id = $1',
-      [orgId],
-    );
+    const totalTokensCount = await prisma.token.count({
+      where: {
+        agent: {
+          orgId,
+        },
+      },
+    });
 
     // 3. Blocked Escalations (Audit logs with 'denied' result)
-    const blockedCount = await query(
-      "SELECT COUNT(*) FROM audit_log WHERE org_id = $1 AND result = 'denied'",
-      [orgId],
-    );
+    const blockedCount = await prisma.auditLog.count({
+      where: {
+        orgId,
+        result: 'denied',
+      },
+    });
 
     // 4. Audit Chain Integrity
     const integrityCheck = await verifyAuditChain(orgId);
 
     // 0. Org Name
-    const orgRes = await query('SELECT name FROM organizations WHERE id = $1', [orgId]);
-    const orgName = orgRes.rows[0]?.name || 'Organization';
+    const org = await prisma.organization.findUnique({
+      where: { id: orgId },
+      select: { name: true },
+    });
+    const orgName = org?.name || 'Organization';
 
     return {
       orgName,
-      activeAgents: parseInt(agentsCount.rows[0].count),
-      totalTokens: parseInt(tokensCount.rows[0].count),
-      blockedEscalations: parseInt(blockedCount.rows[0].count),
+      activeAgents: activeAgentsCount,
+      totalTokens: totalTokensCount,
+      blockedEscalations: blockedCount,
       auditIntegrity: integrityCheck.valid ? 100 : 0,
       recentActivity: await this.getRecentActivity(orgId),
     };
@@ -45,29 +55,29 @@ export class DashboardService {
    * Get a combined stream of recent events.
    */
   private async getRecentActivity(orgId: string) {
-    const res = await query(
-      `SELECT 
-        al.id, 
-        al.action, 
-        al.result, 
-        al.resource, 
-        al.created_at,
-        a.name as agent_name
-       FROM audit_log al
-       JOIN agents a ON al.agent_id = a.id
-       WHERE al.org_id = $1
-       ORDER BY al.created_at DESC
-       LIMIT 5`,
-      [orgId],
-    );
+    const logs = await prisma.auditLog.findMany({
+      where: { orgId },
+      orderBy: { createdAt: 'desc' },
+      take: 5,
+    });
 
-    return res.rows.map((row) => ({
-      id: row.id,
+    // We need agent names, but audit_log doesn't have a direct relation in schema yet
+    // because it was created with BIGSERIAL and raw SQL.
+    // Let's fetch agent names for these logs.
+    const agentIds = [...new Set(logs.map((l) => l.agentId))];
+    const agents = await prisma.agent.findMany({
+      where: { id: { in: agentIds } },
+      select: { id: true, name: true },
+    });
+    const agentMap = Object.fromEntries(agents.map((a) => [a.id, a.name]));
+
+    return logs.map((row) => ({
+      id: row.id.toString(),
       type: row.result === 'allowed' ? 'success' : row.result === 'denied' ? 'error' : 'info',
       action: row.action,
-      agent: row.agent_name,
-      meta: `${row.resource || 'Identity check'} • ${this.formatTime(row.created_at)}`,
-      timestamp: row.created_at,
+      agent: agentMap[row.agentId] || 'Unknown Agent',
+      meta: `${row.resource || 'Identity check'} • ${this.formatTime(row.createdAt)}`,
+      timestamp: row.createdAt,
     }));
   }
 
