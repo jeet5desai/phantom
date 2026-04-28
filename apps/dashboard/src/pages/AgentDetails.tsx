@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
+import { useAuth } from '@clerk/clerk-react';
 import { Link, useParams } from 'react-router-dom';
 import {
   ArrowLeft,
@@ -40,6 +41,7 @@ interface TimelineEntry {
 }
 
 export default function AgentDetails() {
+  const { getToken } = useAuth();
   const { id } = useParams<{ id: string }>();
 
   const [loading, setLoading] = useState(true);
@@ -61,10 +63,11 @@ export default function AgentDetails() {
   const loadData = useCallback(async () => {
     // We only set loading if it's not already true (e.g. on manual refresh)
     setLoading(true);
+    const token = await getToken();
     const [agentRes, permRes, auditRes] = await Promise.all([
-      apiRequest('GET', `/api/v1/agents/${id}`),
-      apiRequest('GET', `/api/v1/agents/${id}/permissions`),
-      apiRequest('GET', `/api/v1/audit?agentId=${id}&limit=5`),
+      apiRequest('GET', `/api/v1/agents/${id}`, undefined, token || undefined),
+      apiRequest('GET', `/api/v1/agents/${id}/permissions`, undefined, token || undefined),
+      apiRequest('GET', `/api/v1/audit?agentId=${id}&limit=5`, undefined, token || undefined),
     ]);
 
     if (agentRes?.agent) setAgent(agentRes.agent);
@@ -109,7 +112,8 @@ export default function AgentDetails() {
     if (!confirmed) return;
 
     setRevoking(true);
-    const result = await apiRequest('POST', `/api/v1/agents/${id}/revoke`);
+    const token = await getToken();
+    const result = await apiRequest('POST', `/api/v1/agents/${id}/revoke`, undefined, token || undefined);
     if (result?.agent) {
       setAgent(result.agent);
     }

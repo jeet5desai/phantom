@@ -1,18 +1,16 @@
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
-import { getAuth } from '@clerk/fastify';
 import * as apiKeyService from '../services/apikey.service.js';
+import { authMiddleware } from '../middleware/auth.js';
 
 const CreateApiKeySchema = z.object({
   name: z.string().min(1).max(100),
 });
 
 export function registerApiKeyRoutes(app: FastifyInstance) {
-  app.post('/api/v1/api-keys', async (request, reply) => {
-    const { userId } = getAuth(request);
-    if (!userId) {
-      return reply.code(401).send({ error: 'UNAUTHORIZED', message: 'Sign in required.' });
-    }
+  app.post('/api/v1/api-keys', { preHandler: [authMiddleware] }, async (request, reply) => {
+    const userId = request.userId;
+
 
     const body = CreateApiKeySchema.parse(request.body);
     const { apiKey, rawKey } = await apiKeyService.createApiKey(userId, body.name);
@@ -24,21 +22,17 @@ export function registerApiKeyRoutes(app: FastifyInstance) {
     });
   });
 
-  app.get('/api/v1/api-keys', async (request, reply) => {
-    const { userId } = getAuth(request);
-    if (!userId) {
-      return reply.code(401).send({ error: 'UNAUTHORIZED', message: 'Sign in required.' });
-    }
+  app.get('/api/v1/api-keys', { preHandler: [authMiddleware] }, async (request, reply) => {
+    const userId = request.userId;
+
 
     const apiKeys = await apiKeyService.listApiKeys(userId);
     return { apiKeys };
   });
 
-  app.post('/api/v1/api-keys/:keyId/revoke', async (request, reply) => {
-    const { userId } = getAuth(request);
-    if (!userId) {
-      return reply.code(401).send({ error: 'UNAUTHORIZED', message: 'Sign in required.' });
-    }
+  app.post('/api/v1/api-keys/:keyId/revoke', { preHandler: [authMiddleware] }, async (request, reply) => {
+    const userId = request.userId;
+
 
     const { keyId } = request.params as { keyId: string };
     const apiKey = await apiKeyService.revokeApiKey(userId, keyId);
@@ -52,11 +46,9 @@ export function registerApiKeyRoutes(app: FastifyInstance) {
     return { apiKey, message: 'API key revoked.' };
   });
 
-  app.delete('/api/v1/api-keys/:keyId', async (request, reply) => {
-    const { userId } = getAuth(request);
-    if (!userId) {
-      return reply.code(401).send({ error: 'UNAUTHORIZED', message: 'Sign in required.' });
-    }
+  app.delete('/api/v1/api-keys/:keyId', { preHandler: [authMiddleware] }, async (request, reply) => {
+    const userId = request.userId;
+
 
     const { keyId } = request.params as { keyId: string };
     const deleted = await apiKeyService.deleteApiKey(userId, keyId);

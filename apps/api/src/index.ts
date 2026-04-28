@@ -24,7 +24,10 @@ await app.register(rateLimit, {
   max: 100,
   timeWindow: '1 minute',
 });
-await app.register(clerkPlugin);
+await app.register(clerkPlugin, {
+  publishableKey: config.clerkPublishableKey,
+  secretKey: config.clerkSecretKey,
+});
 
 // ─── Global error handler ───────────────────────────────────────────────────
 
@@ -56,37 +59,14 @@ app.get('/health', async () => ({
 
 // ─── Routes ─────────────────────────────────────────────────────────────────
 
-app.register(async (instance) => {
-  registerAgentRoutes(instance);
-});
-
-app.register(async (instance) => {
-  registerCredentialRoutes(instance);
-});
-
-app.register(async (instance) => {
-  registerPermissionRoutes(instance);
-});
-
-app.register(async (instance) => {
-  registerTokenRoutes(instance);
-});
-
-app.register(async (instance) => {
-  registerAuditRoutes(instance);
-});
-
-app.register(async (instance) => {
-  registerIntegrationRoutes(instance);
-});
-
-app.register(async (instance) => {
-  registerDashboardRoutes(instance);
-});
-
-app.register(async (instance) => {
-  registerApiKeyRoutes(instance);
-});
+registerAgentRoutes(app);
+registerCredentialRoutes(app);
+registerPermissionRoutes(app);
+registerTokenRoutes(app);
+registerAuditRoutes(app);
+registerIntegrationRoutes(app);
+registerDashboardRoutes(app);
+registerApiKeyRoutes(app);
 
 // ─── Start ──────────────────────────────────────────────────────────────────
 

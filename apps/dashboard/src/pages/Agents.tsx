@@ -1,6 +1,7 @@
 
 
 import { useState, useEffect } from "react";
+import { useAuth } from "@clerk/clerk-react";
 import { 
   Search, 
   Filter, 
@@ -39,6 +40,7 @@ interface Agent {
 }
 
 export default function Agents() {
+  const { getToken } = useAuth();
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showKeyModal, setShowKeyModal] = useState(false);
   const [agents, setAgents] = useState<Agent[]>([]);
@@ -54,7 +56,8 @@ export default function Agents() {
 
   const fetchAgents = async () => {
     setLoading(true);
-    const data = await apiRequest('GET', '/api/v1/agents');
+    const token = await getToken();
+    const data = await apiRequest('GET', '/api/v1/agents', undefined, token || undefined);
     if (data && data.agents) {
       setAgents(data.agents);
     }
@@ -65,7 +68,8 @@ export default function Agents() {
     let isMounted = true;
     const loadAgents = async () => {
       setLoading(true);
-      const data = await apiRequest('GET', '/api/v1/agents');
+      const token = await getToken();
+      const data = await apiRequest('GET', '/api/v1/agents', undefined, token || undefined);
       if (isMounted && data?.agents) {
         setAgents(data.agents);
       }
@@ -81,10 +85,11 @@ export default function Agents() {
     if (!formName.trim()) return;
 
     setCreating(true);
+    const token = await getToken();
     const result = await apiRequest('POST', '/api/v1/agents', {
       name: formName.trim(),
       model: formModel,
-    });
+    }, token || undefined);
 
     if (result?.agent) {
       setShowCreateModal(false);

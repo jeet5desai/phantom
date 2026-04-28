@@ -4,7 +4,7 @@ const API_BASE = import.meta.env.VITE_API_URL || 'http://127.0.0.1:3100';
 // Set VITE_API_KEY in .env.local (which is .gitignored).
 const DEFAULT_API_KEY = import.meta.env.VITE_API_KEY || '';
 
-export async function apiRequest(method: string, path: string, body?: unknown) {
+export async function apiRequest(method: string, path: string, body?: unknown, token?: string) {
   try {
     // In Vite dev mode, we proxy requests to /api/proxy to avoid CORS.
     // In production, we might call API_BASE directly if deployed on the same domain,
@@ -13,8 +13,10 @@ export async function apiRequest(method: string, path: string, body?: unknown) {
 
     const headers: Record<string, string> = {};
 
-    // In pure React app, if we must send an API key directly from the client:
-    if (DEFAULT_API_KEY) {
+    // Prioritize Clerk token over hardcoded API key
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    } else if (DEFAULT_API_KEY) {
       headers['Authorization'] = `Bearer ${DEFAULT_API_KEY}`;
     }
 

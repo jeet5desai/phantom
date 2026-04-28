@@ -1,6 +1,7 @@
 
 
 import { useState, useEffect } from "react";
+import { useAuth } from "@clerk/clerk-react";
 import { 
   Plug, 
   Search, 
@@ -34,6 +35,7 @@ interface Integration {
 }
 
 export default function Integrations() {
+  const { getToken } = useAuth();
   const [integrations, setIntegrations] = useState<Integration[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -41,7 +43,8 @@ export default function Integrations() {
     let isMounted = true;
     const load = async () => {
       setLoading(true);
-      const data = await apiRequest('GET', '/api/v1/integrations');
+      const token = await getToken();
+      const data = await apiRequest('GET', '/api/v1/integrations', undefined, token || undefined);
       if (isMounted && data?.integrations) {
         setIntegrations(data.integrations);
       }
@@ -53,7 +56,8 @@ export default function Integrations() {
 
   const fetchIntegrations = async () => {
     setLoading(true);
-    const data = await apiRequest('GET', '/api/v1/integrations');
+    const token = await getToken();
+    const data = await apiRequest('GET', '/api/v1/integrations', undefined, token || undefined);
     if (data?.integrations) {
       setIntegrations(data.integrations);
     }

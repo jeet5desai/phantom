@@ -1,6 +1,7 @@
 
 
 import { useState, useEffect } from 'react';
+import { useAuth } from '@clerk/clerk-react';
 import {
   Bot,
   Zap,
@@ -32,12 +33,14 @@ interface DashboardStats {
 }
 
 export default function Home() {
+  const { getToken } = useAuth();
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
 
   const fetchStats = async () => {
     setLoading(true);
-    const data = await apiRequest('GET', '/api/v1/dashboard/stats');
+    const token = await getToken();
+    const data = await apiRequest('GET', '/api/v1/dashboard/stats', undefined, token || undefined);
     if (data) {
       setStats(data);
     }
@@ -48,7 +51,8 @@ export default function Home() {
     let isMounted = true;
     const load = async () => {
       setLoading(true);
-      const data = await apiRequest('GET', '/api/v1/dashboard/stats');
+      const token = await getToken();
+      const data = await apiRequest('GET', '/api/v1/dashboard/stats', undefined, token || undefined);
       if (isMounted && data) {
         setStats(data);
       }

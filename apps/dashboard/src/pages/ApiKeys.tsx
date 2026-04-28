@@ -1,6 +1,7 @@
 
 
 import { useState, useEffect } from "react";
+import { useAuth } from "@clerk/clerk-react";
 import {
   Key,
   Plus,
@@ -44,6 +45,7 @@ function formatTime(dateStr: string) {
 }
 
 export default function ApiKeys() {
+  const { getToken } = useAuth();
   const [apiKeys, setApiKeys] = useState<ApiKeyItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -54,7 +56,8 @@ export default function ApiKeys() {
 
   const fetchKeys = async () => {
     setLoading(true);
-    const data = await apiRequest("GET", "/api/v1/api-keys");
+    const token = await getToken();
+    const data = await apiRequest("GET", "/api/v1/api-keys", undefined, token || undefined);
     if (data?.apiKeys) setApiKeys(data.apiKeys);
     setLoading(false);
   };
@@ -63,7 +66,8 @@ export default function ApiKeys() {
     let mounted = true;
     const load = async () => {
       setLoading(true);
-      const data = await apiRequest("GET", "/api/v1/api-keys");
+      const token = await getToken();
+      const data = await apiRequest("GET", "/api/v1/api-keys", undefined, token || undefined);
       if (mounted && data?.apiKeys) setApiKeys(data.apiKeys);
       if (mounted) setLoading(false);
     };
@@ -75,7 +79,8 @@ export default function ApiKeys() {
     e.preventDefault();
     if (!formName.trim()) return;
     setSubmitting(true);
-    const result = await apiRequest("POST", "/api/v1/api-keys", { name: formName.trim() });
+    const token = await getToken();
+    const result = await apiRequest("POST", "/api/v1/api-keys", { name: formName.trim() }, token || undefined);
     if (result?.rawKey) {
       setRevealedKey(result.rawKey);
       setFormName("");
@@ -87,13 +92,15 @@ export default function ApiKeys() {
 
   const handleRevoke = async (keyId: string, keyName: string) => {
     if (!window.confirm(`Revoke "${keyName}"? SDK clients using this key will stop working.`)) return;
-    await apiRequest("POST", `/api/v1/api-keys/${keyId}/revoke`);
+    const token = await getToken();
+    await apiRequest("POST", `/api/v1/api-keys/${keyId}/revoke`, undefined, token || undefined);
     fetchKeys();
   };
 
   const handleDelete = async (keyId: string, keyName: string) => {
     if (!window.confirm(`Delete "${keyName}"? This cannot be undone.`)) return;
-    await apiRequest("DELETE", `/api/v1/api-keys/${keyId}`);
+    const token = await getToken();
+    await apiRequest("DELETE", `/api/v1/api-keys/${keyId}`, undefined, token || undefined);
     fetchKeys();
   };
 
