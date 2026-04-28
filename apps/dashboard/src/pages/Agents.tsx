@@ -183,7 +183,7 @@ export default function Agents() {
           {agents.map((agent) => {
             const isRevoked = !!agent.revoked_at;
             return (
-              <Link key={agent.id} href={`/agents/${agent.id}`} className="glass p-lg flex flex-col gap-6 hover:border-accent-primary transition-all duration-300 group cursor-pointer">
+              <Link key={agent.id} to={`/agents/${agent.id}`} className="glass p-lg flex flex-col gap-6 hover:border-accent-primary transition-all duration-300 group cursor-pointer">
                 <div className="flex justify-between items-start">
                   <div className="w-12 h-12 bg-accent-light rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
                     <Bot size={28} className="text-accent-primary" />
