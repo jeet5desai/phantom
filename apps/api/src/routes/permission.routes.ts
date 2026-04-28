@@ -24,7 +24,7 @@ export function registerPermissionRoutes(app: FastifyInstance) {
     const body = GrantPermissionSchema.parse(request.body);
 
     // Verify agent belongs to this org
-    const agent = await getAgent(request.org.id, body.agentId);
+    const agent = await getAgent(request.userId, body.agentId);
     if (!agent) {
       return reply.code(404).send({ error: 'AGENT_NOT_FOUND' });
     }
@@ -43,7 +43,7 @@ export function registerPermissionRoutes(app: FastifyInstance) {
   app.get('/api/v1/agents/:agentId/permissions', async (request, reply) => {
     const { agentId } = request.params as { agentId: string };
 
-    const agent = await getAgent(request.org.id, agentId);
+    const agent = await getAgent(request.userId, agentId);
     if (!agent) {
       return reply.code(404).send({ error: 'AGENT_NOT_FOUND' });
     }
@@ -56,7 +56,7 @@ export function registerPermissionRoutes(app: FastifyInstance) {
   app.post('/api/v1/permissions/check', async (request, reply) => {
     const body = CheckScopesSchema.parse(request.body);
 
-    const agent = await getAgent(request.org.id, body.agentId);
+    const agent = await getAgent(request.userId, body.agentId);
     if (!agent) {
       return reply.code(404).send({ error: 'AGENT_NOT_FOUND' });
     }
@@ -76,7 +76,7 @@ export function registerPermissionRoutes(app: FastifyInstance) {
         .send({ error: 'MISSING_AGENT_ID', message: 'agentId query param required.' });
     }
 
-    const agent = await getAgent(request.org.id, agentId);
+    const agent = await getAgent(request.userId, agentId);
     if (!agent) {
       return reply.code(404).send({ error: 'NOT_FOUND', message: 'Agent not found.' });
     }

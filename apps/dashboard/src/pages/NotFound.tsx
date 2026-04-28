@@ -1,6 +1,6 @@
-'use client';
 
-import Link from 'next/link';
+
+import { Link } from 'react-router-dom';
 import { Bot, ArrowLeft, Home, Search } from 'lucide-react';
 
 export default function NotFound() {
@@ -39,7 +39,7 @@ export default function NotFound() {
 
           <div className="flex gap-3">
             <Link
-              href="/"
+              to="/"
               className="flex-1 btn-primary py-4 flex items-center justify-center gap-2 "
             >
               <Home size={18} />
@@ -57,7 +57,7 @@ export default function NotFound() {
 
         <p className="text-xs text-text-tertiary font-medium">
           If you believe this is a system error, please contact our{' '}
-          <Link href="/resources" className="text-accent-primary hover:underline">
+          <Link to="/resources" className="text-accent-primary hover:underline">
             security team
           </Link>
           .

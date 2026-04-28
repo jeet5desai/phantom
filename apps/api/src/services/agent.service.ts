@@ -4,7 +4,7 @@ import type { Prisma } from '@prisma/client';
 
 export interface Agent {
   id: string;
-  orgId: string;
+  userId: string;
   name: string;
   model: string | null;
   version: string | null;
@@ -17,7 +17,7 @@ export interface Agent {
 }
 
 export interface CreateAgentInput {
-  orgId: string;
+  userId: string;
   name: string;
   model?: string;
   version?: string;
@@ -36,7 +36,7 @@ export async function createAgent(
   const agent = await prisma.agent.create({
     data: {
       id,
-      orgId: input.orgId,
+      userId: input.userId,
       name: input.name,
       model: input.model || null,
       version: input.version || '1.0.0',
@@ -50,21 +50,21 @@ export async function createAgent(
   return { ...agent, privateKey };
 }
 
-/** Get agent by ID, only if it belongs to the given org. */
-export async function getAgent(orgId: string, agentId: string): Promise<Agent | null> {
+/** Get agent by ID, only if it belongs to the given user. */
+export async function getAgent(userId: string, agentId: string): Promise<Agent | null> {
   return prisma.agent.findFirst({
     where: {
       id: agentId,
-      orgId,
+      userId,
     },
   });
 }
 
-/** List all agents for an org. */
-export async function listAgents(orgId: string, includeRevoked = false): Promise<Agent[]> {
+/** List all agents for a user. */
+export async function listAgents(userId: string, includeRevoked = false): Promise<Agent[]> {
   return prisma.agent.findMany({
     where: {
-      orgId,
+      userId,
       revokedAt: includeRevoked ? undefined : null,
     },
     orderBy: {
@@ -74,12 +74,12 @@ export async function listAgents(orgId: string, includeRevoked = false): Promise
 }
 
 /** Revoke an agent — sets revoked_at timestamp. */
-export async function revokeAgent(orgId: string, agentId: string): Promise<Agent | null> {
+export async function revokeAgent(userId: string, agentId: string): Promise<Agent | null> {
   return prisma.agent
     .update({
       where: {
         id: agentId,
-        orgId,
+        userId,
         revokedAt: null,
       },
       data: {

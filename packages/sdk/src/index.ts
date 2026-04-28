@@ -13,15 +13,9 @@ export interface AgentKeyConfig {
   baseUrl?: string;
 }
 
-export interface Organization {
-  id: string;
-  name: string;
-  created_at: string;
-}
-
 export interface Agent {
   id: string;
-  org_id: string;
+  user_id: string;
   name: string;
   model: string | null;
   version: string;
@@ -61,7 +55,7 @@ export interface CreateTokenInput {
 
 export interface Credential {
   id: string;
-  org_id: string;
+  user_id: string;
   service: string;
   label: string | null;
   created_at: string;
@@ -79,7 +73,7 @@ export interface Permission {
 
 export interface AuditEntry {
   id: number;
-  org_id: string;
+  user_id: string;
   agent_id: string;
   action: string;
   resource: string | null;

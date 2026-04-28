@@ -1,7 +1,7 @@
-'use client';
+
 
 import { useState } from 'react';
-import { useUser, useClerk } from '@clerk/nextjs';
+import { useUser, useClerk } from '@clerk/clerk-react';
 import {
   User,
   Lock,
@@ -25,7 +25,7 @@ const TABS = [
   { id: 'notifications', name: 'Notifications', icon: Bell },
 ];
 
-export default function SettingsPage() {
+export default function Settings() {
   const { user, isLoaded } = useUser();
   const { signOut } = useClerk();
   const [activeTab, setActiveTab] = useState('general');

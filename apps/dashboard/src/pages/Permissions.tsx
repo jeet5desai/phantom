@@ -1,7 +1,6 @@
-"use client";
 
-import { useState } from "react";
-import dynamic from "next/dynamic";
+
+import React, { useState, Suspense } from "react";
 import { 
   ShieldCheck, 
   Plus, 
@@ -30,10 +29,7 @@ import {
 } from "@/components/ui/dialog";
 
 // Dynamically import React Flow component to avoid SSR issues
-const PolicyFlowDesigner = dynamic(() => import("@/components/PolicyFlowDesigner"), { 
-  ssr: false,
-  loading: () => <div className="w-full h-[500px] glass animate-pulse flex items-center justify-center text-text-tertiary">Loading Visual Designer...</div>
-});
+const PolicyFlowDesigner = React.lazy(() => import("@/components/PolicyFlowDesigner"));
 
 const POLICIES = [
   { id: "pol_1", name: "Global Data Redaction", type: "Privacy", status: "Enabled", scope: "all:agents", description: "Automatically redact PII (SSN, Passwords, CC) from all agent inputs/outputs." },
@@ -48,7 +44,7 @@ interface Statement {
   resource: string;
 }
 
-export default function PermissionsPage() {
+export default function Permissions() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [activeMode, setActiveMode] = useState<'statements' | 'visual'>('statements');
   const [showSaveNotice, setShowSaveNotice] = useState(false);
@@ -320,7 +316,9 @@ export default function PermissionsPage() {
                   <label className="label">Visual Flow Graph</label>
                   <span className="text-[10px] font-bold text-text-tertiary bg-surface-hover px-2 py-1 rounded">Read Only Preview</span>
                 </div>
-                <PolicyFlowDesigner />
+                <Suspense fallback={<div className="w-full h-[500px] glass animate-pulse flex items-center justify-center text-text-tertiary">Loading Visual Designer...</div>}>
+                  <PolicyFlowDesigner />
+                </Suspense>
               </div>
             )}
 

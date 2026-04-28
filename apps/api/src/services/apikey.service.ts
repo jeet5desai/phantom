@@ -1,11 +1,9 @@
 import prisma from '../db/prisma.js';
 import { generateId, generateApiKey, hashApiKey } from '../lib/crypto.js';
-import { createOrganization, type Organization } from './organization.service.js';
 
 export interface ApiKey {
   id: string;
   userId: string;
-  orgId: string;
   name: string;
   keyPrefix: string;
   lastUsedAt: Date | null;
@@ -13,31 +11,10 @@ export interface ApiKey {
   createdAt: Date;
 }
 
-async function ensureUserOrg(userId: string): Promise<Organization> {
-  const existing = await prisma.organization.findFirst({
-    where: {
-      apiKeys: {
-        some: { userId },
-      },
-    },
-    select: {
-      id: true,
-      name: true,
-      createdAt: true,
-    },
-  });
-
-  if (existing) return existing;
-
-  const { org } = await createOrganization(`${userId}'s Organization`);
-  return org;
-}
-
 export async function createApiKey(
   userId: string,
   name: string,
 ): Promise<{ apiKey: ApiKey; rawKey: string }> {
-  const org = await ensureUserOrg(userId);
   const id = generateId('ak');
   const { raw, hash } = generateApiKey();
   const prefix = raw.slice(0, 12) + '...';
@@ -46,7 +23,6 @@ export async function createApiKey(
     data: {
       id,
       userId,
-      orgId: org.id,
       name,
       keyPrefix: prefix,
       keyHash: hash,
@@ -54,7 +30,6 @@ export async function createApiKey(
     select: {
       id: true,
       userId: true,
-      orgId: true,
       name: true,
       keyPrefix: true,
       lastUsedAt: true,
@@ -73,7 +48,6 @@ export async function listApiKeys(userId: string): Promise<ApiKey[]> {
     select: {
       id: true,
       userId: true,
-      orgId: true,
       name: true,
       keyPrefix: true,
       lastUsedAt: true,
@@ -97,7 +71,6 @@ export async function revokeApiKey(userId: string, keyId: string): Promise<ApiKe
       select: {
         id: true,
         userId: true,
-        orgId: true,
         name: true,
         keyPrefix: true,
         lastUsedAt: true,
@@ -124,7 +97,7 @@ export async function deleteApiKey(userId: string, keyId: string): Promise<boole
 
 export async function authenticateByApiKey(
   rawKey: string,
-): Promise<{ orgId: string; userId: string; keyId: string } | null> {
+): Promise<{ userId: string; keyId: string } | null> {
   const hash = hashApiKey(rawKey);
   const key = await prisma.apiKey.findUnique({
     where: {
@@ -133,7 +106,6 @@ export async function authenticateByApiKey(
     },
     select: {
       id: true,
-      orgId: true,
       userId: true,
     },
   });
@@ -147,5 +119,5 @@ export async function authenticateByApiKey(
     })
     .catch(() => {});
 
-  return { orgId: key.orgId, userId: key.userId, keyId: key.id };
+  return { userId: key.userId, keyId: key.id };
 }

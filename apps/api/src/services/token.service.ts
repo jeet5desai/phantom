@@ -22,20 +22,19 @@ export interface Token {
 }
 
 export interface CreateTokenInput {
-  orgId: string;
+  userId: string;
   agentId: string;
   scopes: string[];
-  ttl: number; // seconds
+  ttl: number;
   credentialId?: string;
 }
 
 /** Issue a scoped, time-limited token for an agent. */
 export async function createToken(input: CreateTokenInput): Promise<Token> {
-  // 1. Check agent is active
   const active = await isAgentActive(input.agentId);
   if (!active) {
     await logAction({
-      orgId: input.orgId,
+      userId: input.userId,
       agentId: input.agentId,
       action: 'token.create',
       result: 'denied',
@@ -44,11 +43,10 @@ export async function createToken(input: CreateTokenInput): Promise<Token> {
     throw new Error('AGENT_REVOKED');
   }
 
-  // 2. Check agent has the requested scopes
   const scopeCheck = await checkScopes(input.agentId, input.scopes);
   if (!scopeCheck.allowed) {
     await logAction({
-      orgId: input.orgId,
+      userId: input.userId,
       agentId: input.agentId,
       action: 'token.create',
       resource: input.scopes.join(', '),
@@ -58,7 +56,6 @@ export async function createToken(input: CreateTokenInput): Promise<Token> {
     throw new Error(`SCOPE_DENIED:${scopeCheck.denied.join(',')}`);
   }
 
-  // 3. Issue token
   const id = generateId('tok');
   const expiresAt = new Date(Date.now() + input.ttl * 1000);
 
@@ -74,7 +71,7 @@ export async function createToken(input: CreateTokenInput): Promise<Token> {
     });
 
     await logAction({
-      orgId: input.orgId,
+      userId: input.userId,
       agentId: input.agentId,
       tokenId: id,
       action: 'token.create',
@@ -86,7 +83,7 @@ export async function createToken(input: CreateTokenInput): Promise<Token> {
     return {
       ...token,
       scopes: token.scopes as string[],
-      revoked: token.revoked || false
+      revoked: token.revoked || false,
     };
   });
 }
@@ -97,7 +94,6 @@ export async function verifyToken(tokenId: string): Promise<{
   token?: Token;
   reason?: string;
 }> {
-  // Fast path: check Redis cache for revoked tokens
   const cachedRevoked = await isTokenRevokedFast(tokenId);
   if (cachedRevoked === true) return { valid: false, reason: 'Token revoked' };
 
@@ -109,7 +105,6 @@ export async function verifyToken(tokenId: string): Promise<{
   if (token.revoked) return { valid: false, reason: 'Token revoked' };
   if (new Date(token.expiresAt) < new Date()) return { valid: false, reason: 'Token expired' };
 
-  // Check agent revocation (Redis fast path, then DB)
   const agentCachedRevoked = await isAgentRevokedFast(token.agentId);
   if (agentCachedRevoked === true) return { valid: false, reason: 'Agent revoked' };
 
@@ -121,29 +116,25 @@ export async function verifyToken(tokenId: string): Promise<{
     token: {
       ...token,
       scopes: token.scopes as string[],
-      revoked: token.revoked || false
-    }
+      revoked: token.revoked || false,
+    },
   };
 }
 
 /** Revoke a specific token. */
-export async function revokeToken(orgId: string, tokenId: string): Promise<boolean> {
+export async function revokeToken(userId: string, tokenId: string): Promise<boolean> {
   try {
     const result = await prisma.token.update({
       where: {
         id: tokenId,
-        agent: {
-          orgId,
-        },
+        agent: { userId },
         revoked: false,
       },
-      data: {
-        revoked: true,
-      },
+      data: { revoked: true },
     });
 
     if (result) {
-      await cacheRevokedToken(tokenId, 86400); // Cache for 24h
+      await cacheRevokedToken(tokenId, 86400); // 24h
       return true;
     }
     return false;
@@ -153,25 +144,20 @@ export async function revokeToken(orgId: string, tokenId: string): Promise<boole
 }
 
 /** Revoke ALL tokens for an agent (kill switch). */
-export async function revokeAllTokens(orgId: string, agentId: string): Promise<number> {
+export async function revokeAllTokens(userId: string, agentId: string): Promise<number> {
   const result = await prisma.token.updateMany({
     where: {
       agentId,
-      agent: {
-        orgId,
-      },
+      agent: { userId },
       revoked: false,
     },
-    data: {
-      revoked: true,
-    },
+    data: { revoked: true },
   });
 
-  // Cache agent-level revocation in Redis for fast verification
   await cacheRevokedAgent(agentId);
 
   await logAction({
-    orgId,
+    userId,
     agentId,
     action: 'tokens.revoke_all',
     result: 'success',
@@ -181,24 +167,17 @@ export async function revokeAllTokens(orgId: string, agentId: string): Promise<n
   return result.count;
 }
 
-/**
- * Create a delegated token for a sub-agent.
- * The sub-agent's scopes MUST be a subset of the parent agent's scopes.
- */
+/** Create a delegated token for a sub-agent. */
 export async function createDelegatedToken(
   input: CreateTokenInput & { parentAgentId: string },
 ): Promise<Token> {
-  // Validate parent agent exists and is active
   const parentActive = await isAgentActive(input.parentAgentId);
-  if (!parentActive) {
-    throw new Error('PARENT_AGENT_REVOKED');
-  }
+  if (!parentActive) throw new Error('PARENT_AGENT_REVOKED');
 
-  // Validate delegation: child scopes ⊆ parent scopes
   const delegation = await validateDelegation(input.parentAgentId, input.scopes);
   if (!delegation.valid) {
     await logAction({
-      orgId: input.orgId,
+      userId: input.userId,
       agentId: input.agentId,
       action: 'token.delegate',
       resource: input.scopes.join(', '),
@@ -208,8 +187,6 @@ export async function createDelegatedToken(
     throw new Error(`DELEGATION_DENIED:${delegation.denied.join(',')}`);
   }
 
-  // Delegate — issue the token with same flow
   const { parentAgentId, ...createInput } = input;
   return createToken(createInput);
 }
-

@@ -1,7 +1,5 @@
-'use client';
-
-import { use, useEffect, useState, useCallback } from 'react';
-import Link from 'next/link';
+import { useEffect, useState, useCallback } from 'react';
+import { Link, useParams } from 'react-router-dom';
 import {
   ArrowLeft,
   Cpu,
@@ -41,8 +39,8 @@ interface TimelineEntry {
   status: 'success' | 'failure';
 }
 
-export default function AgentDetailsPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = use(params);
+export default function AgentDetails() {
+  const { id } = useParams<{ id: string }>();
 
   const [loading, setLoading] = useState(true);
   const [agent, setAgent] = useState<Agent | null>(null);
@@ -61,6 +59,7 @@ export default function AgentDetailsPage({ params }: { params: Promise<{ id: str
   };
 
   const loadData = useCallback(async () => {
+    // We only set loading if it's not already true (e.g. on manual refresh)
     setLoading(true);
     const [agentRes, permRes, auditRes] = await Promise.all([
       apiRequest('GET', `/api/v1/agents/${id}`),
@@ -72,12 +71,14 @@ export default function AgentDetailsPage({ params }: { params: Promise<{ id: str
     if (permRes?.permissions) setPermissions(permRes.permissions);
     if (auditRes?.entries) {
       setTimeline(
-        auditRes.entries.map((log: { action: string; created_at: string; resource?: string; result: string }) => ({
-          event: log.action,
-          time: formatTime(new Date(log.created_at)),
-          type: log.resource || 'system',
-          status: log.result === 'allowed' || log.result === 'success' ? 'success' : 'failure',
-        })),
+        auditRes.entries.map(
+          (log: { action: string; created_at: string; resource?: string; result: string }) => ({
+            event: log.action,
+            time: formatTime(new Date(log.created_at)),
+            type: log.resource || 'system',
+            status: log.result === 'allowed' || log.result === 'success' ? 'success' : 'failure',
+          }),
+        ),
       );
     }
     setLoading(false);
@@ -85,7 +86,17 @@ export default function AgentDetailsPage({ params }: { params: Promise<{ id: str
 
   useEffect(() => {
     let isMounted = true;
-    loadData().then(() => { if (!isMounted) return; });
+
+    const fetch = async () => {
+      // Small delay to ensure we're out of the synchronous render path
+      await Promise.resolve();
+      if (isMounted) {
+        await loadData();
+      }
+    };
+
+    fetch();
+
     return () => {
       isMounted = false;
     };
@@ -93,7 +104,7 @@ export default function AgentDetailsPage({ params }: { params: Promise<{ id: str
 
   const handleRevoke = async () => {
     const confirmed = window.confirm(
-      'Are you sure you want to revoke this agent? All associated sessions will be terminated. This action cannot be undone.'
+      'Are you sure you want to revoke this agent? All associated sessions will be terminated. This action cannot be undone.',
     );
     if (!confirmed) return;
 
@@ -118,7 +129,7 @@ export default function AgentDetailsPage({ params }: { params: Promise<{ id: str
       <div className="flex flex-col p-16 justify-center items-center gap-4">
         <AlertCircle size={48} className="text-text-tertiary" />
         <h2 className="text-2xl font-bold text-text-secondary">Agent not found</h2>
-        <Link href="/agents" className="text-accent-primary hover:underline">
+        <Link to="/agents" className="text-accent-primary hover:underline">
           Return to Agents
         </Link>
       </div>
@@ -133,7 +144,7 @@ export default function AgentDetailsPage({ params }: { params: Promise<{ id: str
     <div className="flex flex-col gap-lg fade-in">
       <div className="flex items-center gap-4 mb-2">
         <Link
-          href="/agents"
+          to="/agents"
           className="p-2 border border-border rounded-md text-text-tertiary hover:bg-surface-hover hover:text-text-primary transition-all"
         >
           <ArrowLeft size={20} />
@@ -236,7 +247,7 @@ export default function AgentDetailsPage({ params }: { params: Promise<{ id: str
                 <h3 className="text-xl font-display font-bold">Activity Timeline</h3>
               </div>
               <Link
-                href="/audit-logs"
+                to="/audit-logs"
                 className="text-xs font-bold text-accent-primary hover:underline flex items-center gap-1"
               >
                 View all logs <ExternalLink size={12} />

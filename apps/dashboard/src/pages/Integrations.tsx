@@ -1,4 +1,4 @@
-"use client";
+
 
 import { useState, useEffect } from "react";
 import { 
@@ -33,7 +33,7 @@ interface Integration {
   docsUrl?: string;
 }
 
-export default function IntegrationsPage() {
+export default function Integrations() {
   const [integrations, setIntegrations] = useState<Integration[]>([]);
   const [loading, setLoading] = useState(true);
 

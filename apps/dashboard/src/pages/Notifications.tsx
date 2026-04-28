@@ -1,4 +1,4 @@
-"use client";
+
 
 import { 
   Bell, 
@@ -55,7 +55,7 @@ const NOTIFICATIONS = [
   }
 ];
 
-export default function NotificationsPage() {
+export default function Notifications() {
   return (
     <div className="flex flex-col gap-lg fade-in">
       <div className="flex justify-between items-end mb-2">

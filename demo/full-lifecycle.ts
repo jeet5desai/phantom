@@ -2,21 +2,28 @@
  * AgentKey — Full Lifecycle Demo
  *
  * This script exercises the entire AgentKey flow:
- * 1. Create an organization
- * 2. Create an agent with identity
- * 3. Store a credential in the vault
- * 4. Grant permissions
- * 5. Issue a scoped token
- * 6. Verify the token
- * 7. Attempt unauthorized scope (should fail)
- * 8. Check audit log
- * 9. Kill switch — revoke all tokens
- * 10. Verify revoked token fails
+ * 1. Create an agent with identity
+ * 2. Store a credential in the vault
+ * 3. Grant permissions
+ * 4. Issue a scoped token
+ * 5. Verify the token
+ * 6. Attempt unauthorized scope (should fail)
+ * 7. Check audit log
+ * 8. Kill switch — revoke all tokens
+ * 9. Verify revoked token fails
  *
- * Usage: npx tsx demo/full-lifecycle.ts
+ * Usage: API_KEY=ak_... npx tsx demo/full-lifecycle.ts
  */
 
 const API_BASE = 'http://localhost:3100';
+const apiKey = process.env.API_KEY;
+
+if (!apiKey) {
+  console.error(
+    'Missing API_KEY env var. Run the seed first, then: API_KEY=ak_... npx tsx demo/full-lifecycle.ts',
+  );
+  process.exit(1);
+}
 
 async function request(method: string, path: string, body?: unknown, apiKey?: string) {
   const headers: Record<string, string> = {};
@@ -44,17 +51,9 @@ async function main() {
   console.log('║   🔐 AgentKey — Full Lifecycle Demo      ║');
   console.log('╚═══════════════════════════════════════════╝\n');
 
-  // 1. Create Organization
-  const orgRes = await request('POST', '/api/v1/organizations', { name: 'Demo Corp' });
-  if (!orgRes.data.organization) {
-    console.error('Failed to create organization:', orgRes.data);
-    process.exit(1);
-  }
-  const apiKey = orgRes.data.apiKey;
-  log('🏢', `Organization created: ${orgRes.data.organization.id}`, orgRes.data.organization.name);
-  log('🔑', `API Key: ${apiKey.slice(0, 20)}...`);
+  log('🔑', `Using API Key: ${apiKey.slice(0, 20)}...`);
 
-  // 2. Create Agent
+  // 1. Create Agent
   const agentRes = await request(
     'POST',
     '/api/v1/agents',
@@ -68,7 +67,7 @@ async function main() {
   const agentId = agentRes.data.agent.id;
   log('🤖', `Agent created: ${agentId}`, agentRes.data.agent.name);
 
-  // 3. Store Credential
+  // 2. Store Credential
   const credRes = await request(
     'POST',
     '/api/v1/credentials',
@@ -82,7 +81,7 @@ async function main() {
   const credId = credRes.data.credential.id;
   log('🔒', `Credential stored: ${credId}`, `service: ${credRes.data.credential.service}`);
 
-  // 4. Grant Permissions
+  // 3. Grant Permissions
   await request(
     'POST',
     '/api/v1/permissions',
@@ -107,7 +106,7 @@ async function main() {
   );
   log('✅', 'Permission granted: stripe:invoices:list');
 
-  // 5. Issue Scoped Token
+  // 4. Issue Scoped Token
   const tokenRes = await request(
     'POST',
     '/api/v1/tokens',
@@ -122,11 +121,11 @@ async function main() {
   const tokenId = tokenRes.data.token.id;
   log('🎫', `Token issued: ${tokenId}`, `expires: ${tokenRes.data.token.expires_at}`);
 
-  // 6. Verify Token
+  // 5. Verify Token
   const verifyRes = await request('POST', '/api/v1/tokens/verify', { token: tokenId }, apiKey);
   log('✔️', `Token verification: ${verifyRes.data.valid ? 'VALID ✅' : 'INVALID ❌'}`);
 
-  // 7. Attempt Unauthorized Scope
+  // 6. Attempt Unauthorized Scope
   const deniedRes = await request(
     'POST',
     '/api/v1/tokens',
@@ -143,7 +142,7 @@ async function main() {
     deniedRes.data.deniedScopes || deniedRes.data.error,
   );
 
-  // 8. Check Audit Log
+  // 7. Check Audit Log
   const auditRes = await request(
     'GET',
     `/api/v1/audit?agentId=${agentId}&limit=10`,
@@ -157,11 +156,11 @@ async function main() {
     );
   }
 
-  // 9. Kill Switch
+  // 8. Kill Switch
   const killRes = await request('DELETE', `/api/v1/agents/${agentId}/tokens`, undefined, apiKey);
   log('🔴', `Kill switch activated!`, killRes.data);
 
-  // 10. Verify Revoked Token
+  // 9. Verify Revoked Token
   const revokedVerify = await request('POST', '/api/v1/tokens/verify', { token: tokenId }, apiKey);
   log(
     '🔒',
@@ -169,7 +168,7 @@ async function main() {
     revokedVerify.data.reason,
   );
 
-  // 11. Verify Audit Chain Integrity
+  // 10. Verify Audit Chain Integrity
   const chainRes = await request('GET', '/api/v1/audit/verify', undefined, apiKey);
   log(
     '🔗',

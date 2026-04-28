@@ -1,8 +1,6 @@
-'use client';
-
 import { useState } from 'react';
-import { useSignUp, useClerk } from '@clerk/nextjs';
-import Link from 'next/link';
+import { useSignUp, useClerk } from '@clerk/clerk-react';
+import { Link } from 'react-router-dom';
 import { Loader2 } from 'lucide-react';
 
 export default function SignUpForm() {
@@ -27,19 +25,13 @@ export default function SignUpForm() {
     setIsGoogleLoading(true);
     setError('');
     try {
-      const result = await signUp.sso({
+      await signUp.authenticateWithRedirect({
         strategy: 'oauth_google',
         redirectUrl: '/sso-callback',
-        redirectCallbackUrl: '/',
+        redirectUrlComplete: '/',
       });
-
-      if (result.error) {
-        setError(result.error.message);
-        setIsGoogleLoading(false);
-        return;
-      }
     } catch (err) {
-      const error = err as { errors?: { message: string }[]; message?: string };
+      const error = err as any;
       setError(error.errors?.[0]?.message || error.message || 'Failed to authenticate with Google');
       setIsGoogleLoading(false);
     }
@@ -63,21 +55,14 @@ export default function SignUpForm() {
         lastName: lastName || '',
       });
 
-      if (result.error) {
-        setError(result.error.message);
-        return;
-      }
-
       // Send the email verification code
-      const verifyResult = await signUp.verifications.sendEmailCode();
-      if (verifyResult.error) {
-        setError(verifyResult.error.message);
-        return;
-      }
+      await signUp.prepareEmailAddressVerification({
+        strategy: 'email_code',
+      });
 
       setPendingVerification(true);
     } catch (err) {
-      const error = err as { errors?: { message: string }[]; message?: string };
+      const error = err as any;
       setError(
         error.errors?.[0]?.message || error.message || 'Something went wrong during sign up',
       );
@@ -94,25 +79,19 @@ export default function SignUpForm() {
     setError('');
 
     try {
-      const verifyResult = await signUp.verifications.verifyEmailCode({
+      const verifyResult = await signUp.attemptEmailAddressVerification({
         code,
       });
 
-      if (verifyResult.error) {
-        setError(verifyResult.error.message);
-        setIsVerifyLoading(false);
-        return;
-      }
-
-      if (signUp.status === 'complete') {
-        await setActive({ session: signUp.createdSessionId });
+      if (verifyResult.status === 'complete') {
+        await setActive({ session: verifyResult.createdSessionId });
         window.location.href = '/';
       } else {
         setError('Verification failed.');
         setIsVerifyLoading(false);
       }
     } catch (err) {
-      const error = err as { errors?: { message: string }[]; message?: string };
+      const error = err as any;
       setError(error.errors?.[0]?.message || error.message || 'Invalid verification code');
       setIsVerifyLoading(false);
     }
@@ -254,7 +233,7 @@ export default function SignUpForm() {
         {!pendingVerification && (
           <p className="mt-6 text-center text-sm text-text-secondary">
             Already have an account?{' '}
-            <Link href="/sign-in" className="text-accent-primary hover:underline font-semibold">
+            <Link to="/sign-in" className="text-accent-primary hover:underline font-semibold">
               Sign in
             </Link>
           </p>

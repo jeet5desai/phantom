@@ -15,7 +15,7 @@ export function registerAuditRoutes(app: FastifyInstance) {
       offset?: string;
     };
 
-    const data = await auditService.queryAuditLog(request.org.id, {
+    const data = await auditService.queryAuditLog(request.userId, {
       agentId,
       action,
       result,
@@ -28,7 +28,7 @@ export function registerAuditRoutes(app: FastifyInstance) {
 
   /** Verify audit chain integrity. */
   app.get('/api/v1/audit/verify', async (request) => {
-    const result = await auditService.verifyAuditChain(request.org.id);
+    const result = await auditService.verifyAuditChain(request.userId);
     return result;
   });
 }

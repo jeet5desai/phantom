@@ -1,4 +1,4 @@
-"use client";
+
 
 import { useState, useEffect } from "react";
 import { 
@@ -27,7 +27,7 @@ interface AuditLogEntry {
   timestamp?: string;
 }
 
-export default function AuditLogsPage() {
+export default function AuditLogs() {
   const [logs, setLogs] = useState<AuditLogEntry[]>([]);
   const [loading, setLoading] = useState(true);
 

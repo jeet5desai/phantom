@@ -1,7 +1,7 @@
-'use client';
 
-import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+
+import { Link } from 'react-router-dom';
+import { useNavigate, useLocation, useParams } from 'react-router-dom';
 import {
   LayoutDashboard,
   Bot,
@@ -28,18 +28,17 @@ const NAV_ITEMS = [
 ];
 
 export default function SidebarNav() {
-  const pathname = usePathname();
+  const location = useLocation();
 
   return (
     <nav className="flex flex-col gap-1 flex-1">
       {NAV_ITEMS.map((item) => {
-        const isActive = pathname === item.href;
+        const isActive = location.pathname === item.href;
         const Icon = item.icon;
 
         return (
-          <Link
-            key={item.name}
-            href={item.href}
+          <Link key={item.name}
+            to={item.href}
             className={`
               flex items-center gap-3 px-4 py-3 rounded-md group
               ${

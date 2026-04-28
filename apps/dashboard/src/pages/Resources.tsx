@@ -1,4 +1,4 @@
-"use client";
+
 
 import { 
   BookOpen, 
@@ -54,7 +54,7 @@ const POPULAR_DOCS = [
   "Handling rate limits"
 ];
 
-export default function ResourcesPage() {
+export default function Resources() {
   return (
     <div className="flex flex-col gap-lg fade-in">
       {/* Hero Section */}

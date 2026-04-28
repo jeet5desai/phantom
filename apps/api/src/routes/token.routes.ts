@@ -23,14 +23,14 @@ export function registerTokenRoutes(app: FastifyInstance) {
     const body = CreateTokenSchema.parse(request.body);
 
     // Verify agent belongs to this org
-    const agent = await getAgent(request.org.id, body.agentId);
+    const agent = await getAgent(request.userId, body.agentId);
     if (!agent) {
       return reply.code(404).send({ error: 'AGENT_NOT_FOUND' });
     }
 
     try {
       const token = await tokenService.createToken({
-        orgId: request.org.id,
+        userId: request.userId,
         agentId: body.agentId,
         scopes: body.scopes,
         ttl: body.ttl,
@@ -70,7 +70,7 @@ export function registerTokenRoutes(app: FastifyInstance) {
   /** Revoke a specific token. */
   app.delete('/api/v1/tokens/:tokenId', async (request, reply) => {
     const { tokenId } = request.params as { tokenId: string };
-    const revoked = await tokenService.revokeToken(request.org.id, tokenId);
+    const revoked = await tokenService.revokeToken(request.userId, tokenId);
 
     if (!revoked) {
       return reply
@@ -94,12 +94,12 @@ export function registerTokenRoutes(app: FastifyInstance) {
     const body = DelegateSchema.parse(request.body);
 
     // Verify both agents belong to this org
-    const parent = await getAgent(request.org.id, body.parentAgentId);
+    const parent = await getAgent(request.userId, body.parentAgentId);
     if (!parent) {
       return reply.code(404).send({ error: 'PARENT_NOT_FOUND' });
     }
 
-    const child = await getAgent(request.org.id, body.childAgentId);
+    const child = await getAgent(request.userId, body.childAgentId);
     if (!child) {
       return reply.code(404).send({ error: 'CHILD_NOT_FOUND' });
     }
@@ -107,7 +107,7 @@ export function registerTokenRoutes(app: FastifyInstance) {
     try {
       // Remove parentAgentId before passing to createToken via createDelegatedToken
       const token = await tokenService.createDelegatedToken({
-        orgId: request.org.id,
+        userId: request.userId,
         agentId: body.childAgentId,
         parentAgentId: body.parentAgentId,
         scopes: body.scopes,

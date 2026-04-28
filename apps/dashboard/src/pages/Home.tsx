@@ -1,4 +1,4 @@
-'use client';
+
 
 import { useState, useEffect } from 'react';
 import {
@@ -14,7 +14,7 @@ import {
   RefreshCw,
 } from 'lucide-react';
 import { apiRequest } from '@/lib/api';
-import Link from 'next/link';
+import { Link } from 'react-router-dom';
 
 interface RecentActivity {
   type: 'success' | 'error' | 'info';
@@ -158,7 +158,7 @@ export default function Home() {
               </p>
             </div>
             <Link
-              href="/agents"
+              to="/agents"
               className="text-accent-primary font-bold text-sm hover:underline flex items-center gap-1"
             >
               Go to Agents <ChevronRight size={16} />
@@ -225,7 +225,7 @@ export default function Home() {
           </div>
           <div className="mt-auto p-lg border-t border-border">
             <Link
-              href="/audit-logs"
+              to="/audit-logs"
               className="text-accent-primary font-bold text-sm hover:underline flex items-center gap-1"
             >
               View All Logs <ChevronRight size={16} />

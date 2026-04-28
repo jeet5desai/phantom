@@ -1,15 +1,13 @@
-'use client';
-
 import { useState } from 'react';
-import { useSignIn, useClerk } from '@clerk/nextjs';
-import { useRouter } from 'next/navigation';
-import Link from 'next/link';
+import { useSignIn, useClerk } from '@clerk/clerk-react';
+import { useNavigate, useLocation, useParams } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { Loader2 } from 'lucide-react';
 
 export default function SignInForm() {
   const { signIn } = useSignIn();
   const { setActive } = useClerk();
-  const router = useRouter();
+  const router = useNavigate();
 
   const signInLoaded = !!signIn;
 
@@ -27,19 +25,13 @@ export default function SignInForm() {
     setError('');
 
     try {
-      const result = await signIn.sso({
+      await signIn.authenticateWithRedirect({
         strategy: 'oauth_google',
         redirectUrl: '/sso-callback',
-        redirectCallbackUrl: '/',
+        redirectUrlComplete: '/',
       });
-
-      if (result.error) {
-        setError(result.error.message);
-        setIsGoogleLoading(false);
-        return;
-      }
     } catch (err) {
-      const error = err as { errors?: { message: string }[]; message?: string };
+      const error = err as any;
       setError(error.errors?.[0]?.message || error.message || 'Failed to authenticate with Google');
       setIsGoogleLoading(false);
     }
@@ -58,21 +50,15 @@ export default function SignInForm() {
         password,
       });
 
-      if (result.error) {
-        setError(result.error.message);
-        setIsSubmitLoading(false);
-        return;
-      }
-
-      if (signIn.status === 'complete') {
-        await setActive({ session: signIn.createdSessionId });
+      if (result.status === 'complete') {
+        await setActive({ session: result.createdSessionId });
         window.location.href = '/';
       } else {
         setError('Something went wrong. Please check your credentials.');
         setIsSubmitLoading(false);
       }
     } catch (err) {
-      const error = err as { errors?: { message: string }[]; message?: string };
+      const error = err as any;
       setError(error.errors?.[0]?.message || error.message || 'Invalid email or password');
       setIsSubmitLoading(false);
     }
@@ -170,7 +156,7 @@ export default function SignInForm() {
 
         <p className="mt-6 text-center text-sm text-text-secondary">
           Don&apos;t have an account?{' '}
-          <Link href="/sign-up" className="text-accent-primary hover:underline font-semibold">
+          <Link to="/sign-up" className="text-accent-primary hover:underline font-semibold">
             Sign up
           </Link>
         </p>

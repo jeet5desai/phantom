@@ -2,7 +2,6 @@ import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import rateLimit from '@fastify/rate-limit';
 import { config } from './config.js';
-import { registerOrgRoutes } from './routes/organization.routes.js';
 import { registerAgentRoutes } from './routes/agent.routes.js';
 import { registerCredentialRoutes } from './routes/credential.routes.js';
 import { registerPermissionRoutes } from './routes/permission.routes.js';
@@ -56,10 +55,6 @@ app.get('/health', async () => ({
 }));
 
 // ─── Routes ─────────────────────────────────────────────────────────────────
-
-app.register(async (instance) => {
-  registerOrgRoutes(instance);
-});
 
 app.register(async (instance) => {
   registerAgentRoutes(instance);

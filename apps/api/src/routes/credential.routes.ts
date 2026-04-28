@@ -21,14 +21,14 @@ export function registerCredentialRoutes(app: FastifyInstance) {
   app.post('/api/v1/credentials', async (request, reply) => {
     const body = StoreCredentialSchema.parse(request.body);
     const credential = await credentialService.storeCredential(
-      request.org.id,
+      request.userId,
       body.service,
       body.apiKey,
       body.label,
     );
 
     await logAction({
-      orgId: request.org.id,
+      userId: request.userId,
       agentId: 'system',
       action: 'credential.store',
       resource: body.service,
@@ -41,7 +41,7 @@ export function registerCredentialRoutes(app: FastifyInstance) {
 
   /** List credentials (metadata only, no decryption). */
   app.get('/api/v1/credentials', async (request) => {
-    const credentials = await credentialService.listCredentials(request.org.id);
+    const credentials = await credentialService.listCredentials(request.userId);
     return { credentials };
   });
 
@@ -51,7 +51,7 @@ export function registerCredentialRoutes(app: FastifyInstance) {
     const body = RotateCredentialSchema.parse(request.body);
 
     const credential = await credentialService.rotateCredential(
-      request.org.id,
+      request.userId,
       credentialId,
       body.apiKey,
     );
@@ -61,7 +61,7 @@ export function registerCredentialRoutes(app: FastifyInstance) {
     }
 
     await logAction({
-      orgId: request.org.id,
+      userId: request.userId,
       agentId: 'system',
       action: 'credential.rotate',
       resource: credential.service,
@@ -74,7 +74,7 @@ export function registerCredentialRoutes(app: FastifyInstance) {
   /** Delete a credential. */
   app.delete('/api/v1/credentials/:credentialId', async (request, reply) => {
     const { credentialId } = request.params as { credentialId: string };
-    const deleted = await credentialService.deleteCredential(request.org.id, credentialId);
+    const deleted = await credentialService.deleteCredential(request.userId, credentialId);
 
     if (!deleted) {
       return reply.code(404).send({ error: 'NOT_FOUND', message: 'Credential not found.' });

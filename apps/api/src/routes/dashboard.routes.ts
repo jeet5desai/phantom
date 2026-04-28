@@ -9,8 +9,8 @@ export function registerDashboardRoutes(app: FastifyInstance) {
    */
   app.get('/api/v1/dashboard/stats', { preHandler: [authMiddleware] }, async (request, reply) => {
     try {
-      // request.org is attached by authMiddleware
-      const stats = await dashboardService.getStats(request.org.id);
+      // request.userId is attached by authMiddleware
+      const stats = await dashboardService.getStats(request.userId);
       return reply.send(stats);
     } catch (error) {
       const err = error as Error;

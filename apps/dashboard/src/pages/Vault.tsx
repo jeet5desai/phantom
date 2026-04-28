@@ -1,4 +1,4 @@
-"use client";
+
 
 import { useState, useEffect } from "react";
 import { 
@@ -57,7 +57,7 @@ interface Credential {
   rotated_at?: string | null;
 }
 
-export default function VaultPage() {
+export default function Vault() {
   const [showAddModal, setShowAddModal] = useState(false);
   const [showSecret, setShowSecret] = useState(false);
   const [credentials, setCredentials] = useState<Credential[]>([]);

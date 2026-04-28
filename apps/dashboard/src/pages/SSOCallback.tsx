@@ -1,7 +1,7 @@
-"use client";
+
 
 import { useEffect } from "react";
-import { useClerk } from "@clerk/nextjs";
+import { useClerk } from "@clerk/clerk-react";
 import { Loader2 } from "lucide-react";
 
 export default function SSOCallback() {

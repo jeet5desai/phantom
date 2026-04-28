@@ -1,6 +1,4 @@
-'use client';
-
-import { usePathname } from 'next/navigation';
+import { useLocation } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import SidebarNav from '@/components/SidebarNav';
 import TopBar from '@/components/TopBar';
@@ -8,11 +6,11 @@ import { ShieldCheck } from 'lucide-react';
 import { apiRequest } from '@/lib/api';
 
 export default function LayoutWrapper({ children }: { children: React.ReactNode }) {
-  const pathname = usePathname();
+  const location = useLocation();
   const isAuthPage =
-    pathname.startsWith('/sign-in') ||
-    pathname.startsWith('/sign-up') ||
-    pathname.startsWith('/sso-callback');
+    location.pathname.startsWith('/sign-in') ||
+    location.pathname.startsWith('/sign-up') ||
+    location.pathname.startsWith('/sso-callback');
   const [orgName, setOrgName] = useState('Loading...');
   const [isCheckingOrg, setIsCheckingOrg] = useState(!isAuthPage);
 
@@ -34,7 +32,6 @@ export default function LayoutWrapper({ children }: { children: React.ReactNode 
         });
     }
   }, [isAuthPage]);
-
 
   if (isAuthPage) {
     return <>{children}</>;

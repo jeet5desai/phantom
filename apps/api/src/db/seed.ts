@@ -1,24 +1,25 @@
-import { createOrganization } from '../services/organization.service.js';
+import { createApiKey } from '../services/apikey.service.js';
 import { createAgent } from '../services/agent.service.js';
 import { storeCredential } from '../services/credential.service.js';
 import { grantPermission } from '../services/permission.service.js';
+
 /**
  * Seed the database with sample data for local development.
- * Creates a demo org, agent, credential, and permissions.
+ * Creates a demo user's API key, agents, credentials, and permissions.
  */
+const DEMO_USER_ID = 'user_demo_seed_001';
+
 async function seed() {
   console.log('[Seed] Starting seeding process...');
 
-
-
-  console.log('[Seed] Creating demo organization...');
-  const { org, apiKey } = await createOrganization('Demo Corp');
-  console.log(`  → Org:     ${org.id} (${org.name})`);
-  console.log(`  → API Key: ${apiKey}`);
+  console.log('[Seed] Creating API key for demo user...');
+  const { apiKey, rawKey } = await createApiKey(DEMO_USER_ID, 'Demo Key');
+  console.log(`  → API Key ID: ${apiKey.id}`);
+  console.log(`  → Raw Key:    ${rawKey}`);
 
   console.log('[Seed] Creating demo agent...');
   const agent = await createAgent({
-    orgId: org.id,
+    userId: DEMO_USER_ID,
     name: 'invoice-processor',
     model: 'gpt-4',
     version: '1.0.0',
@@ -29,7 +30,7 @@ async function seed() {
 
   console.log('[Seed] Creating sub-agent...');
   const subAgent = await createAgent({
-    orgId: org.id,
+    userId: DEMO_USER_ID,
     name: 'email-notifier',
     model: 'gpt-4-mini',
     version: '1.0.0',
@@ -41,13 +42,13 @@ async function seed() {
 
   console.log('[Seed] Storing demo credentials...');
   const stripeCred = await storeCredential(
-    org.id,
+    DEMO_USER_ID,
     'stripe',
     'sk_test_fake_stripe_key_12345',
     'Stripe Test',
   );
   const gmailCred = await storeCredential(
-    org.id,
+    DEMO_USER_ID,
     'gmail',
     'gmail_fake_oauth_token_12345',
     'Gmail OAuth',
@@ -59,12 +60,12 @@ async function seed() {
   await grantPermission(agent.id, 'stripe:invoices', 'read');
   await grantPermission(agent.id, 'stripe:invoices', 'list');
   await grantPermission(agent.id, 'gmail', 'send');
-  await grantPermission(subAgent.id, 'gmail', 'send'); // Sub-agent only gets email
+  await grantPermission(subAgent.id, 'gmail', 'send');
   console.log('  → invoice-processor: stripe:invoices:read, stripe:invoices:list, gmail:send');
   console.log('  → email-notifier:    gmail:send');
 
   console.log('\n[Seed] ✅ Seed complete! Save this API key to test:\n');
-  console.log(`  API_KEY=${apiKey}\n`);
+  console.log(`  API_KEY=${rawKey}\n`);
 }
 
 seed()

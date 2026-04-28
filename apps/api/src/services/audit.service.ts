@@ -4,7 +4,7 @@ import type { Prisma } from '@prisma/client';
 
 export interface AuditEntry {
   id: string;
-  orgId: string;
+  userId: string;
   agentId: string;
   credentialId: string | null;
   tokenId: string | null;
@@ -19,7 +19,7 @@ export interface AuditEntry {
 }
 
 export interface LogActionInput {
-  orgId: string;
+  userId: string;
   agentId: string;
   credentialId?: string;
   tokenId?: string;
@@ -38,7 +38,7 @@ export async function logAction(input: LogActionInput): Promise<AuditEntry> {
     // without using extensions or raw queries in some versions.
     // In Prisma 5, we can use $queryRaw for 'FOR UPDATE'.
     const prevResults = await tx.$queryRaw<{ hash: string }[]>`
-      SELECT hash FROM audit_log WHERE org_id = ${input.orgId} ORDER BY id DESC LIMIT 1 FOR UPDATE
+      SELECT hash FROM audit_log WHERE user_id = ${input.userId} ORDER BY id DESC LIMIT 1 FOR UPDATE
     `;
     const prevHash = prevResults[0]?.hash || null;
 
@@ -53,7 +53,7 @@ export async function logAction(input: LogActionInput): Promise<AuditEntry> {
 
     const entry = await tx.auditLog.create({
       data: {
-        orgId: input.orgId,
+        userId: input.userId,
         agentId: input.agentId,
         credentialId: input.credentialId || null,
         tokenId: input.tokenId || null,
@@ -75,9 +75,9 @@ export async function logAction(input: LogActionInput): Promise<AuditEntry> {
   });
 }
 
-/** Query audit log for an org with filters. */
+/** Query audit log for a user with filters. */
 export async function queryAuditLog(
-  orgId: string,
+  userId: string,
   filters?: {
     agentId?: string;
     action?: string;
@@ -87,7 +87,7 @@ export async function queryAuditLog(
   },
 ): Promise<{ entries: AuditEntry[]; total: number }> {
   const where: Prisma.AuditLogWhereInput = {
-    orgId,
+    userId,
   };
 
   if (filters?.agentId) where.agentId = filters.agentId;
@@ -113,14 +113,14 @@ export async function queryAuditLog(
   };
 }
 
-/** Verify the integrity of the audit chain for an org. */
-export async function verifyAuditChain(orgId: string): Promise<{
+/** Verify the integrity of the audit chain for a user. */
+export async function verifyAuditChain(userId: string): Promise<{
   valid: boolean;
   brokenAt?: string;
   totalEntries: number;
 }> {
   const logs = await prisma.auditLog.findMany({
-    where: { orgId },
+    where: { userId },
     orderBy: { id: 'asc' },
   });
 

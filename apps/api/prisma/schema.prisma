@@ -97,7 +97,7 @@ model ApiKey {
 
 model AuditLog {
   id           BigInt    @id @default(autoincrement())
-  orgId        String    @map("org_id")
+  userId       String    @map("user_id")
   agentId      String    @map("agent_id")
   credentialId String?   @map("credential_id")
   tokenId      String?   @map("token_id")
@@ -110,7 +110,7 @@ model AuditLog {
   prevHash     String?   @map("prev_hash")
   createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
 
-  @@index([orgId, agentId], map: "idx_audit_org_agent")
+  @@index([userId, agentId], map: "idx_audit_user_agent")
   @@index([createdAt], map: "idx_audit_created")
   @@map("audit_log")
 }

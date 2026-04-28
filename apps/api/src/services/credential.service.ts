@@ -3,7 +3,7 @@ import { generateId, encrypt } from '../lib/crypto.js';
 
 export interface Credential {
   id: string;
-  orgId: string;
+  userId: string;
   service: string;
   label: string | null;
   createdAt: Date;
@@ -12,7 +12,7 @@ export interface Credential {
 
 /** Store a credential in the encrypted vault. */
 export async function storeCredential(
-  orgId: string,
+  userId: string,
   service: string,
   apiKey: string,
   label?: string,
@@ -23,7 +23,7 @@ export async function storeCredential(
   return prisma.credential.create({
     data: {
       id,
-      orgId,
+      userId,
       service,
       label: label || null,
       encryptedKey: encrypted,
@@ -31,7 +31,7 @@ export async function storeCredential(
     },
     select: {
       id: true,
-      orgId: true,
+      userId: true,
       service: true,
       label: true,
       createdAt: true,
@@ -40,14 +40,14 @@ export async function storeCredential(
   });
 }
 
-/** List credentials for an org (metadata only, no decryption). */
-export async function listCredentials(orgId: string): Promise<Credential[]> {
+/** List credentials for a user (metadata only, no decryption). */
+export async function listCredentials(userId: string): Promise<Credential[]> {
   return prisma.credential.findMany({
-    where: { orgId },
+    where: { userId },
     orderBy: { createdAt: 'desc' },
     select: {
       id: true,
-      orgId: true,
+      userId: true,
       service: true,
       label: true,
       createdAt: true,
@@ -58,40 +58,42 @@ export async function listCredentials(orgId: string): Promise<Credential[]> {
 
 /** Rotate a credential — replace the stored key. */
 export async function rotateCredential(
-  orgId: string,
+  userId: string,
   credentialId: string,
   newApiKey: string,
 ): Promise<Credential | null> {
   const { encrypted, iv } = encrypt(newApiKey);
 
-  return prisma.credential.update({
-    where: {
-      id: credentialId,
-      orgId,
-    },
-    data: {
-      encryptedKey: encrypted,
-      iv,
-      rotatedAt: new Date(),
-    },
-    select: {
-      id: true,
-      orgId: true,
-      service: true,
-      label: true,
-      createdAt: true,
-      rotatedAt: true,
-    },
-  }).catch(() => null);
+  return prisma.credential
+    .update({
+      where: {
+        id: credentialId,
+        userId,
+      },
+      data: {
+        encryptedKey: encrypted,
+        iv,
+        rotatedAt: new Date(),
+      },
+      select: {
+        id: true,
+        userId: true,
+        service: true,
+        label: true,
+        createdAt: true,
+        rotatedAt: true,
+      },
+    })
+    .catch(() => null);
 }
 
 /** Delete a credential. */
-export async function deleteCredential(orgId: string, credentialId: string): Promise<boolean> {
+export async function deleteCredential(userId: string, credentialId: string): Promise<boolean> {
   try {
     await prisma.credential.delete({
       where: {
         id: credentialId,
-        orgId,
+        userId,
       },
     });
     return true;
@@ -99,4 +101,3 @@ export async function deleteCredential(orgId: string, credentialId: string): Pro
     return false;
   }
 }
-

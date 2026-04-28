@@ -1,4 +1,4 @@
-"use client";
+
 
 import { useState, useEffect } from "react";
 import {
@@ -43,7 +43,7 @@ function formatTime(dateStr: string) {
   return `${Math.floor(hours / 24)}d ago`;
 }
 
-export default function ApiKeysPage() {
+export default function ApiKeys() {
   const [apiKeys, setApiKeys] = useState<ApiKeyItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);

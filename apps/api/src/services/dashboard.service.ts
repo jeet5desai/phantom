@@ -5,58 +5,36 @@ export class DashboardService {
   /**
    * Get aggregate statistics for the dashboard.
    */
-  async getStats(orgId: string) {
-    // 1. Active Agents
+  async getStats(userId: string) {
     const activeAgentsCount = await prisma.agent.count({
-      where: {
-        orgId,
-        revokedAt: null,
-      },
+      where: { userId, revokedAt: null },
     });
 
-    // 2. Total Tokens Issued
     const totalTokensCount = await prisma.token.count({
-      where: {
-        agent: {
-          orgId,
-        },
-      },
+      where: { agent: { userId } },
     });
 
-    // 3. Blocked Escalations (Audit logs with 'denied' result)
     const blockedCount = await prisma.auditLog.count({
-      where: {
-        orgId,
-        result: 'denied',
-      },
+      where: { userId, result: 'denied' },
     });
 
-    // 4. Audit Chain Integrity
-    const integrityCheck = await verifyAuditChain(orgId);
-
-    // 0. Org Name
-    const org = await prisma.organization.findUnique({
-      where: { id: orgId },
-      select: { name: true },
-    });
-    const orgName = org?.name || 'Organization';
+    const integrityCheck = await verifyAuditChain(userId);
 
     return {
-      orgName,
       activeAgents: activeAgentsCount,
       totalTokens: totalTokensCount,
       blockedEscalations: blockedCount,
       auditIntegrity: integrityCheck.valid ? 100 : 0,
-      recentActivity: await this.getRecentActivity(orgId),
+      recentActivity: await this.getRecentActivity(userId),
     };
   }
 
   /**
    * Get a combined stream of recent events.
    */
-  private async getRecentActivity(orgId: string) {
+  private async getRecentActivity(userId: string) {
     const logs = await prisma.auditLog.findMany({
-      where: { orgId },
+      where: { userId },
       orderBy: { createdAt: 'desc' },
       take: 5,
     });

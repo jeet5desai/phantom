@@ -24,11 +24,11 @@ export function registerAgentRoutes(app: FastifyInstance) {
 
     // If delegating from a parent, validate parent belongs to same org
     if (body.parentAgentId) {
-      const parent = await agentService.getAgent(request.org.id, body.parentAgentId);
+      const parent = await agentService.getAgent(request.userId, body.parentAgentId);
       if (!parent) {
         return reply.code(404).send({
           error: 'PARENT_NOT_FOUND',
-          message: 'Parent agent not found in your organization.',
+          message: 'Parent agent not found in your account.',
         });
       }
       if (parent.revokedAt) {
@@ -39,12 +39,12 @@ export function registerAgentRoutes(app: FastifyInstance) {
     }
 
     const agent = await agentService.createAgent({
-      orgId: request.org.id,
+      userId: request.userId,
       ...body,
     });
 
     await logAction({
-      orgId: request.org.id,
+      userId: request.userId,
       agentId: agent.id,
       action: 'agent.create',
       result: 'success',
@@ -63,14 +63,14 @@ export function registerAgentRoutes(app: FastifyInstance) {
   /** List agents. */
   app.get('/api/v1/agents', async (request) => {
     const { includeRevoked } = request.query as { includeRevoked?: string };
-    const agents = await agentService.listAgents(request.org.id, includeRevoked === 'true');
+    const agents = await agentService.listAgents(request.userId, includeRevoked === 'true');
     return { agents };
   });
 
   /** Get a specific agent. */
   app.get('/api/v1/agents/:agentId', async (request, reply) => {
     const { agentId } = request.params as { agentId: string };
-    const agent = await agentService.getAgent(request.org.id, agentId);
+    const agent = await agentService.getAgent(request.userId, agentId);
 
     if (!agent) {
       return reply.code(404).send({ error: 'NOT_FOUND', message: 'Agent not found.' });
@@ -82,7 +82,7 @@ export function registerAgentRoutes(app: FastifyInstance) {
   /** Revoke an agent — marks as inactive. */
   app.post('/api/v1/agents/:agentId/revoke', async (request, reply) => {
     const { agentId } = request.params as { agentId: string };
-    const agent = await agentService.revokeAgent(request.org.id, agentId);
+    const agent = await agentService.revokeAgent(request.userId, agentId);
 
     if (!agent) {
       return reply
@@ -98,12 +98,12 @@ export function registerAgentRoutes(app: FastifyInstance) {
     const { agentId } = request.params as { agentId: string };
 
     // Verify agent exists in this org
-    const agent = await agentService.getAgent(request.org.id, agentId);
+    const agent = await agentService.getAgent(request.userId, agentId);
     if (!agent) {
       return reply.code(404).send({ error: 'NOT_FOUND', message: 'Agent not found.' });
     }
 
-    const revokedCount = await revokeAllTokens(request.org.id, agentId);
+    const revokedCount = await revokeAllTokens(request.userId, agentId);
     return { message: `Kill switch activated. ${revokedCount} token(s) revoked.`, revokedCount };
   });
 }

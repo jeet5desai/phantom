@@ -1,10 +1,9 @@
 import type { FastifyRequest, FastifyReply } from 'fastify';
 import { authenticateByApiKey } from '../services/apikey.service.js';
-import { getOrganization, type Organization } from '../services/organization.service.js';
 
 declare module 'fastify' {
   interface FastifyRequest {
-    org: Organization;
+    userId: string;
     apiKeyId: string;
   }
 }
@@ -29,14 +28,6 @@ export async function authMiddleware(request: FastifyRequest, reply: FastifyRepl
     });
   }
 
-  const org = await getOrganization(authResult.orgId);
-  if (!org) {
-    return reply.code(401).send({
-      error: 'UNAUTHORIZED',
-      message: 'Organization not found.',
-    });
-  }
-
-  request.org = org;
+  request.userId = authResult.userId;
   request.apiKeyId = authResult.keyId;
 }

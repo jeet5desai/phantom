@@ -1,4 +1,4 @@
-"use client";
+
 
 import { useState, useEffect } from "react";
 import { 
@@ -27,7 +27,7 @@ import {
   DialogFooter, 
   DialogClose 
 } from "@/components/ui/dialog";
-import Link from "next/link";
+import { Link } from "react-router-dom";
 
 interface Agent {
   id: string;
@@ -38,7 +38,7 @@ interface Agent {
   metadata?: Record<string, string>;
 }
 
-export default function AgentsPage() {
+export default function Agents() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showKeyModal, setShowKeyModal] = useState(false);
   const [agents, setAgents] = useState<Agent[]>([]);
