@@ -79,7 +79,7 @@ export default function PermissionsPage() {
   return (
     <div className="flex flex-col gap-lg fade-in">
       {showSaveNotice && (
-        <div className="fixed top-6 right-6 z-50 p-4 bg-warning-bg border border-warning/30 rounded-xl flex items-center gap-3 shadow-lg animate-in slide-in-from-top-2 duration-300">
+        <div className="fixed top-6 right-6 z-50 p-4 bg-warning-bg border border-warning/30 rounded-xl flex items-center gap-3 animate-in slide-in-from-top-2 duration-300">
           <AlertTriangle size={18} className="text-warning shrink-0" />
           <p className="text-sm font-medium text-text-primary">Policy engine is not yet connected. Policies are previewed locally only.</p>
         </div>
@@ -90,7 +90,7 @@ export default function PermissionsPage() {
           <p className="text-text-secondary text-lg">Define global security boundaries and human-in-the-loop requirements.</p>
         </div>
         <button 
-          className="btn-primary flex items-center gap-2 shadow-md shadow-accent-primary/20"
+          className="btn-primary flex items-center gap-2 "
           onClick={() => setShowCreateModal(true)}
         >
           <Plus size={20} />
@@ -211,14 +211,14 @@ export default function PermissionsPage() {
               <div className="flex items-center gap-2 bg-surface-hover p-1 rounded-lg">
                 <button 
                   onClick={() => setActiveMode('statements')}
-                  className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-xs font-bold transition-all ${activeMode === 'statements' ? 'bg-white text-accent-primary shadow-sm' : 'text-text-tertiary hover:text-text-secondary'}`}
+                  className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-xs font-bold transition-all ${activeMode === 'statements' ? 'bg-white text-accent-primary ' : 'text-text-tertiary hover:text-text-secondary'}`}
                 >
                   <List size={14} />
                   Statements
                 </button>
                 <button 
                   onClick={() => setActiveMode('visual')}
-                  className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-xs font-bold transition-all ${activeMode === 'visual' ? 'bg-white text-accent-primary shadow-sm' : 'text-text-tertiary hover:text-text-secondary'}`}
+                  className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-xs font-bold transition-all ${activeMode === 'visual' ? 'bg-white text-accent-primary ' : 'text-text-tertiary hover:text-text-secondary'}`}
                 >
                   <Layout size={14} />
                   Visual Flow
@@ -344,7 +344,7 @@ export default function PermissionsPage() {
               </button>
               <button 
                 type="submit" 
-                className="btn-primary px-8 shadow-lg shadow-accent-primary/20"
+                className="btn-primary px-8 "
               >
                 Save Policy
               </button>

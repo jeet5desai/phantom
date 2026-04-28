@@ -47,7 +47,7 @@ export default function LayoutWrapper({
         
         <div className="p-4 border-t border-border">
           <div className="glass p-3 flex items-center gap-3 bg-background">
-            <div className="w-10 h-10 rounded-md bg-accent-primary text-white flex items-center justify-center font-bold text-lg shadow-sm">
+            <div className="w-10 h-10 rounded-md bg-accent-primary text-white flex items-center justify-center font-bold text-lg ">
               {orgName.charAt(0).toUpperCase()}
             </div>
             <div className="flex flex-col min-w-0">

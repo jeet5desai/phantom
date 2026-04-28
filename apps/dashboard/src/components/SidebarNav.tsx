@@ -39,17 +39,17 @@ export default function SidebarNav() {
             key={item.name}
             href={item.href}
             className={`
-              flex items-center gap-3 px-4 py-3 rounded-md transition-all duration-200 group
+              flex items-center gap-3 px-4 py-3 rounded-md group
               ${
                 isActive
-                  ? 'bg-accent-light text-accent-primary font-bold shadow-sm border border-accent-primary/10'
+                  ? 'bg-accent-light text-accent-primary font-bold border border-accent-primary/10'
                   : 'text-text-secondary hover:bg-surface-hover hover:text-text-primary'
               }
             `}
           >
             <Icon
               size={20}
-              className={`transition-colors ${isActive ? 'text-accent-primary' : 'text-text-tertiary group-hover:text-text-secondary'}`}
+              className={`${isActive ? 'text-accent-primary' : 'text-text-tertiary group-hover:text-text-secondary'}`}
             />
             <span className="text-sm tracking-tight">{item.name}</span>
           </Link>

@@ -47,7 +47,7 @@ export default function SettingsPage() {
                 onClick={() => setActiveTab(tab.id)}
                 className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all text-left ${
                   isActive
-                    ? 'bg-accent-primary text-white font-bold shadow-md shadow-accent-primary/20'
+                    ? 'bg-accent-primary text-white font-bold '
                     : 'text-text-secondary hover:bg-surface-hover hover:text-text-primary'
                 }`}
               >
@@ -76,7 +76,7 @@ export default function SettingsPage() {
               </div>
 
               <div className="flex items-center gap-8">
-                <div className="w-24 h-24 bg-accent-light rounded-full flex items-center justify-center border-4 border-surface shadow-sm overflow-hidden relative group cursor-pointer">
+                <div className="w-24 h-24 bg-accent-light rounded-full flex items-center justify-center border-4 border-surface overflow-hidden relative group cursor-pointer">
                   <span className="text-3xl font-display font-bold text-accent-primary">JD</span>
                   <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                     <Smartphone size={24} className="text-white" />
@@ -117,7 +117,7 @@ export default function SettingsPage() {
                 <button className="px-6 py-3 font-bold text-text-secondary hover:bg-surface-hover rounded-md transition-colors">
                   Discard
                 </button>
-                <button className="btn-primary px-8 shadow-lg shadow-accent-primary/20">
+                <button className="btn-primary px-8 ">
                   Save Changes
                 </button>
               </div>
@@ -136,7 +136,7 @@ export default function SettingsPage() {
               <div className="flex flex-col gap-6">
                 <div className="flex items-center justify-between p-6 bg-background rounded-xl border border-border group hover:border-accent-primary transition-colors cursor-pointer">
                   <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 bg-surface rounded-lg flex items-center justify-center shadow-sm">
+                    <div className="w-10 h-10 bg-surface rounded-lg flex items-center justify-center ">
                       <Lock size={20} className="text-accent-primary" />
                     </div>
                     <div className="flex flex-col">
@@ -152,7 +152,7 @@ export default function SettingsPage() {
 
                 <div className="flex items-center justify-between p-6 bg-background rounded-xl border border-border group hover:border-accent-primary transition-colors cursor-pointer">
                   <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 bg-surface rounded-lg flex items-center justify-center shadow-sm">
+                    <div className="w-10 h-10 bg-surface rounded-lg flex items-center justify-center ">
                       <Smartphone size={20} className="text-accent-primary" />
                     </div>
                     <div className="flex flex-col">
@@ -170,7 +170,7 @@ export default function SettingsPage() {
 
                 <div className="flex items-center justify-between p-6 bg-background rounded-xl border border-border group hover:border-accent-primary transition-colors cursor-pointer">
                   <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 bg-surface rounded-lg flex items-center justify-center shadow-sm">
+                    <div className="w-10 h-10 bg-surface rounded-lg flex items-center justify-center ">
                       <Mail size={20} className="text-accent-primary" />
                     </div>
                     <div className="flex flex-col">
@@ -199,7 +199,7 @@ export default function SettingsPage() {
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-lg">
-                <div className="bg-accent-primary p-8 rounded-2xl text-white flex flex-col gap-6 shadow-xl shadow-accent-primary/20 relative overflow-hidden group">
+                <div className="bg-accent-primary p-8 rounded-2xl text-white flex flex-col gap-6 relative overflow-hidden group">
                   <div className="absolute -top-10 -right-10 w-40 h-40 bg-white/10 rounded-full blur-3xl group-hover:scale-150 transition-transform duration-700"></div>
                   <div className="flex flex-col gap-1">
                     <span className="text-xs font-bold uppercase tracking-widest text-white/60">

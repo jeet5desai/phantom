@@ -1,15 +1,14 @@
 import type { Metadata } from "next";
-import { DM_Sans, DM_Serif_Display } from "next/font/google";
+import { Inter, Outfit } from "next/font/google";
 import LayoutWrapper from "@/components/LayoutWrapper";
 import "./globals.css";
 
-const dmSans = DM_Sans({
+const inter = Inter({
   subsets: ["latin"],
   variable: "--font-sans",
 });
 
-const dmSerif = DM_Serif_Display({
-  weight: "400",
+const outfit = Outfit({
   subsets: ["latin"],
   variable: "--font-display",
 });
@@ -25,7 +24,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${dmSans.variable} ${dmSerif.variable}`}>
+    <html lang="en" className={`${inter.variable} ${outfit.variable}`}>
       <body className="antialiased font-sans">
         <LayoutWrapper>
           {children}

@@ -86,7 +86,7 @@ export default function NotificationsPage() {
         </div>
         <div className="flex gap-3">
           <div className="flex bg-background border border-border rounded-md p-1">
-            <button className="px-4 py-1.5 rounded-sm text-xs font-bold bg-surface shadow-sm text-text-primary">All</button>
+            <button className="px-4 py-1.5 rounded-sm text-xs font-bold bg-surface text-text-primary">All</button>
             <button className="px-4 py-1.5 rounded-sm text-xs font-bold text-text-tertiary hover:text-text-secondary transition-colors">Unread</button>
             <button className="px-4 py-1.5 rounded-sm text-xs font-bold text-text-tertiary hover:text-text-secondary transition-colors">Archived</button>
           </div>

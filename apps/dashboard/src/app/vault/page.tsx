@@ -153,7 +153,7 @@ export default function VaultPage() {
             <RefreshCw size={20} className={loading ? 'animate-spin' : ''} />
           </button>
           <button 
-            className="btn-primary flex items-center gap-2 shadow-md shadow-accent-primary/20"
+            className="btn-primary flex items-center gap-2 "
             onClick={() => { setShowAddModal(true); setFormName(''); setFormService(''); setFormSecret(''); }}
           >
             <Plus size={20} />
@@ -362,7 +362,7 @@ export default function VaultPage() {
               </button>
               <button 
                 type="submit" 
-                className="btn-primary px-8 shadow-lg shadow-accent-primary/20"
+                className="btn-primary px-8 "
                 disabled={submitting}
               >
                 {submitting ? 'Vaulting...' : 'Vault Secret'}

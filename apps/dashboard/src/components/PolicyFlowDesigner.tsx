@@ -31,7 +31,7 @@ interface SecurityNodeProps {
 const SecurityNode = ({ data, selected }: SecurityNodeProps) => {
   const Icon = data.icon;
   return (
-    <div className={`p-4 rounded-xl border-2 transition-all shadow-lg min-w-[180px] ${
+    <div className={`p-4 rounded-xl border-2 transition-all min-w-[180px] ${
       selected ? 'border-accent-primary bg-accent-light' : 'border-border bg-white'
     }`}>
       <Handle type="target" position={Position.Left} className="w-2 h-2 bg-accent-primary border-none" />
@@ -145,7 +145,7 @@ export default function PolicyFlowDesigner() {
       </ReactFlow>
       
       <div className="absolute top-4 right-4 z-10 flex flex-col gap-2">
-        <div className="px-3 py-1 bg-accent-primary text-white text-[10px] font-bold rounded-full uppercase tracking-widest shadow-lg">
+        <div className="px-3 py-1 bg-accent-primary text-white text-[10px] font-bold rounded-full uppercase tracking-widest ">
           Live Editor
         </div>
       </div>

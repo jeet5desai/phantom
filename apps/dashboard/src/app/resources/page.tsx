@@ -58,7 +58,7 @@ export default function ResourcesPage() {
   return (
     <div className="flex flex-col gap-lg fade-in">
       {/* Hero Section */}
-      <div className="bg-accent-primary rounded-2xl p-lg lg:p-16 text-white flex flex-col items-center text-center gap-8 shadow-xl shadow-accent-primary/20 relative overflow-hidden">
+      <div className="bg-accent-primary rounded-2xl p-lg lg:p-16 text-white flex flex-col items-center text-center gap-8 relative overflow-hidden">
         <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_30%_20%,rgba(255,255,255,0.1),transparent)]"></div>
         <div className="flex flex-col gap-4 relative z-10">
           <h1 className="text-4xl lg:text-5xl font-display font-bold">How can we help you?</h1>
@@ -70,7 +70,7 @@ export default function ResourcesPage() {
           <input 
             type="text" 
             placeholder="Search docs, APIs, and guides..." 
-            className="w-full pl-16 pr-8 py-5 bg-white rounded-xl text-text-primary shadow-2xl outline-none focus:ring-4 focus:ring-white/20 transition-all text-lg placeholder:text-text-tertiary"
+            className="w-full pl-16 pr-8 py-5 bg-white rounded-xl text-text-primary outline-none focus:ring-4 focus:ring-white/20 transition-all text-lg placeholder:text-text-tertiary"
           />
         </div>
       </div>
@@ -79,7 +79,7 @@ export default function ResourcesPage() {
         {RESOURCES.map((res) => {
           const Icon = res.icon;
           return (
-            <div key={res.title} className="glass p-lg flex flex-col gap-4 hover:-translate-y-2 transition-all duration-300 cursor-pointer group shadow-lg">
+            <div key={res.title} className="glass p-lg flex flex-col gap-4 hover:-translate-y-2 transition-all duration-300 cursor-pointer group ">
               <div className={`w-12 h-12 ${res.bgColor} ${res.color} rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform`}>
                 <Icon size={24} />
               </div>
@@ -143,7 +143,7 @@ export default function ResourcesPage() {
           </div>
 
           <div className="glass p-lg bg-surface-hover flex flex-col gap-4 items-center text-center">
-            <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center shadow-sm">
+            <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center ">
               <MessageSquare size={24} className="text-accent-primary" />
             </div>
             <div className="flex flex-col gap-1">

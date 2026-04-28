@@ -334,7 +334,7 @@ export default function AgentDetailsPage({ params }: { params: Promise<{ id: str
                 id="revoke-agent-button"
                 onClick={handleRevoke}
                 disabled={revoking}
-                className="w-full py-3 bg-error text-white rounded-md font-bold text-sm hover:bg-error/90 transition-colors shadow-lg shadow-error/10 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full py-3 bg-error text-white rounded-md font-bold text-sm hover:bg-error/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {revoking ? 'Revoking...' : 'Revoke Agent'}
               </button>

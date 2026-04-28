@@ -143,7 +143,7 @@ export default function AgentsPage() {
             <RefreshCw size={20} className={loading ? 'animate-spin' : ''} />
           </button>
           <button 
-            className="btn-primary flex items-center gap-2 shadow-md shadow-accent-primary/20"
+            className="btn-primary flex items-center gap-2 "
             onClick={() => { setShowCreateModal(true); setFormName(''); setFormModel('GPT-4o'); }}
           >
             <Plus size={20} />
@@ -188,7 +188,7 @@ export default function AgentsPage() {
                   <div className="w-12 h-12 bg-accent-light rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
                     <Bot size={28} className="text-accent-primary" />
                   </div>
-                  <div className={`flex items-center gap-2 px-3 py-1.5 bg-background border border-border rounded-full shadow-sm`}>
+                  <div className={`flex items-center gap-2 px-3 py-1.5 bg-background border border-border rounded-full `}>
                     {!isRevoked && <span className="w-2 h-2 rounded-full bg-success animate-pulse"></span>}
                     <span className={`text-[10px] font-bold uppercase tracking-wider ${isRevoked ? 'text-error' : 'text-text-secondary'}`}>
                       {isRevoked ? 'Revoked' : 'Active'}

@@ -8,7 +8,6 @@
     "packages/*"
   ],
   "scripts": {
-    "dev": "npm run dev --workspace=apps/api",
     "dev:api": "npm run dev --workspace=apps/api",
     "dev:dashboard": "npm run dev --workspace=apps/dashboard",
     "build": "npm run build --workspace=packages/sdk && npm run build --workspace=apps/api && npm run build --workspace=apps/dashboard",

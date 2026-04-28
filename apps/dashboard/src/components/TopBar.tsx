@@ -42,7 +42,7 @@ export default function TopBar() {
           </button>
           
           {showNotifications && (
-            <div className="absolute top-12 right-0 w-80 glass z-50 shadow-xl overflow-hidden fade-in">
+            <div className="absolute top-12 right-0 w-80 glass z-50 overflow-hidden fade-in">
               <div className="p-4 border-b border-border flex justify-between items-center">
                 <h4 className="font-display font-semibold">Notifications</h4>
                 <button className="text-xs font-bold text-accent-primary hover:underline">Mark all read</button>

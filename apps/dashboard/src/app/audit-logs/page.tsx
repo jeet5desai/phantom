@@ -73,7 +73,7 @@ export default function AuditLogsPage() {
             <Download size={18} />
             Export CSV
           </button>
-          <button className="btn-primary flex items-center gap-2 shadow-md shadow-accent-primary/20">
+          <button className="btn-primary flex items-center gap-2 ">
             <Play size={18} />
             Live View
           </button>

@@ -74,7 +74,7 @@ export default function IntegrationsPage() {
           >
             <RefreshCw size={20} className={loading ? 'animate-spin' : ''} />
           </button>
-          <button className="btn-primary flex items-center gap-2 shadow-md shadow-accent-primary/20">
+          <button className="btn-primary flex items-center gap-2 ">
             <Plus size={20} />
             <span>Browse Marketplace</span>
           </button>

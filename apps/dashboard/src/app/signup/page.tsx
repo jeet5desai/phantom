@@ -6,7 +6,7 @@ import { ShieldCheck, Mail, Lock, User, ArrowRight } from "lucide-react";
 export default function SignupPage() {
   return (
     <div className="fixed inset-0 bg-background flex items-center justify-center p-6 fade-in">
-      <div className="glass w-full max-w-[440px] p-12 flex flex-col gap-8 shadow-2xl">
+      <div className="glass w-full max-w-[440px] p-12 flex flex-col gap-8 ">
         <div className="flex flex-col items-center text-center gap-3">
           <div className="w-16 h-16 bg-accent-light rounded-2xl flex items-center justify-center mb-2">
             <ShieldCheck className="text-accent-primary" size={40} />
@@ -55,7 +55,7 @@ export default function SignupPage() {
             </div>
           </div>
 
-          <button className="btn-primary w-full py-4 text-base flex justify-center items-center gap-3 shadow-lg shadow-accent-primary/20 group mt-2">
+          <button className="btn-primary w-full py-4 text-base flex justify-center items-center gap-3 group mt-2">
             <span>Get started</span>
             <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
           </button>

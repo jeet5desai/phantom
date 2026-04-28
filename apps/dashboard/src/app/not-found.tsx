@@ -11,7 +11,7 @@ export default function NotFound() {
           <div className="w-32 h-32 bg-accent-light rounded-full flex items-center justify-center animate-pulse">
             <Bot size={64} className="text-accent-primary" />
           </div>
-          <div className="absolute -top-2 -right-2 bg-error text-white px-3 py-1 rounded-full text-xs font-bold shadow-lg">
+          <div className="absolute -top-2 -right-2 bg-error text-white px-3 py-1 rounded-full text-xs font-bold ">
             404
           </div>
         </div>
@@ -33,14 +33,14 @@ export default function NotFound() {
             <input
               type="text"
               placeholder="Search for agents, logs, or pages..."
-              className="w-full pl-12 pr-4 py-4 bg-surface border border-border rounded-xl outline-none focus:border-accent-primary transition-all shadow-sm"
+              className="w-full pl-12 pr-4 py-4 bg-surface border border-border rounded-xl outline-none focus:border-accent-primary transition-all "
             />
           </div>
 
           <div className="flex gap-3">
             <Link
               href="/"
-              className="flex-1 btn-primary py-4 flex items-center justify-center gap-2 shadow-lg shadow-accent-primary/20"
+              className="flex-1 btn-primary py-4 flex items-center justify-center gap-2 "
             >
               <Home size={18} />
               <span>Back to Dashboard</span>

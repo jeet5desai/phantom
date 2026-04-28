@@ -52,7 +52,7 @@ export function Dialog({ isOpen, onClose, children }: DialogProps) {
 
 export function DialogContent({ children, className = "" }: { children: React.ReactNode; className?: string }) {
   return (
-    <div className={`bg-surface border border-border rounded-lg shadow-lg p-lg flex flex-col gap-lg relative ${className}`}>
+    <div className={`bg-surface border border-border rounded-lg p-lg flex flex-col gap-lg relative ${className}`}>
       {children}
     </div>
   );
