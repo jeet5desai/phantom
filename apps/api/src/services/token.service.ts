@@ -1,4 +1,4 @@
-import { query } from '../db/pool.js';
+import { query, getClient } from '../db/pool.js';
 import { generateId } from '../lib/crypto.js';
 import { checkScopes, validateDelegation } from './permission.service.js';
 import { isAgentActive, getAgent } from './agent.service.js';
@@ -61,24 +61,38 @@ export async function createToken(input: CreateTokenInput): Promise<Token> {
   const id = generateId('tok');
   const expiresAt = new Date(Date.now() + input.ttl * 1000);
 
-  const result = await query<Token>(
-    `INSERT INTO tokens (id, agent_id, credential_id, scopes, expires_at)
-     VALUES ($1, $2, $3, $4, $5)
-     RETURNING *`,
-    [id, input.agentId, input.credentialId || null, JSON.stringify(input.scopes), expiresAt],
-  );
+  const client = await getClient();
+  try {
+    await client.query('BEGIN');
 
-  await logAction({
-    orgId: input.orgId,
-    agentId: input.agentId,
-    tokenId: id,
-    action: 'token.create',
-    resource: input.scopes.join(', '),
-    result: 'success',
-    reasoning: `Token issued, TTL=${input.ttl}s`,
-  });
+    const result = await client.query<Token>(
+      `INSERT INTO tokens (id, agent_id, credential_id, scopes, expires_at)
+       VALUES ($1, $2, $3, $4, $5)
+       RETURNING *`,
+      [id, input.agentId, input.credentialId || null, JSON.stringify(input.scopes), expiresAt],
+    );
 
-  return result.rows[0];
+    await logAction(
+      {
+        orgId: input.orgId,
+        agentId: input.agentId,
+        tokenId: id,
+        action: 'token.create',
+        resource: input.scopes.join(', '),
+        result: 'success',
+        reasoning: `Token issued, TTL=${input.ttl}s`,
+      },
+      client,
+    );
+
+    await client.query('COMMIT');
+    return result.rows[0];
+  } catch (err) {
+    await client.query('ROLLBACK');
+    throw err;
+  } finally {
+    client.release();
+  }
 }
 
 /** Verify a token — checks Redis cache first, then DB. */
@@ -109,10 +123,18 @@ export async function verifyToken(tokenId: string): Promise<{
 }
 
 /** Revoke a specific token. */
-export async function revokeToken(tokenId: string): Promise<boolean> {
-  const result = await query(`UPDATE tokens SET revoked = TRUE WHERE id = $1 AND revoked = FALSE`, [
-    tokenId,
-  ]);
+export async function revokeToken(orgId: string, tokenId: string): Promise<boolean> {
+  const result = await query(
+    `
+    UPDATE tokens SET revoked = TRUE 
+    FROM agents 
+    WHERE tokens.agent_id = agents.id 
+      AND tokens.id = $1 
+      AND agents.org_id = $2 
+      AND tokens.revoked = FALSE
+  `,
+    [tokenId, orgId],
+  );
   if (result.rowCount! > 0) {
     await cacheRevokedToken(tokenId, 86400); // Cache for 24h
   }
@@ -168,5 +190,6 @@ export async function createDelegatedToken(
   }
 
   // Delegate — issue the token with same flow
-  return createToken(input);
+  const { parentAgentId, ...createInput } = input;
+  return createToken(createInput);
 }

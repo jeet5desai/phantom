@@ -79,10 +79,18 @@ export async function checkScopes(
     if (grantedSet.has(scope)) {
       granted.push(scope);
     } else {
-      // Also check for wildcard: "stripe:*" grants "stripe:invoices:read"
+      // Check for wildcards at every level: "stripe:*" or "stripe:invoices:*"
+      let allowed = false;
       const parts = scope.split(':');
-      const wildcardCheck = parts.slice(0, -1).join(':') + ':*';
-      if (grantedSet.has(wildcardCheck)) {
+      for (let i = 1; i < parts.length; i++) {
+        const wildcardCheck = parts.slice(0, i).join(':') + ':*';
+        if (grantedSet.has(wildcardCheck)) {
+          allowed = true;
+          break;
+        }
+      }
+
+      if (allowed) {
         granted.push(scope);
       } else {
         denied.push(scope);

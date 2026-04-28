@@ -33,6 +33,7 @@ export async function runMigrations() {
       parent_agent_id TEXT REFERENCES agents(id)
     );
     CREATE INDEX IF NOT EXISTS idx_agents_org ON agents(org_id);
+    CREATE INDEX IF NOT EXISTS idx_agents_parent ON agents(parent_agent_id);
   `);
 
   // Credential vault
@@ -95,8 +96,7 @@ export async function runMigrations() {
       prev_hash     TEXT,
       created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()
     );
-    CREATE INDEX IF NOT EXISTS idx_audit_org ON audit_log(org_id);
-    CREATE INDEX IF NOT EXISTS idx_audit_agent ON audit_log(agent_id);
+    CREATE INDEX IF NOT EXISTS idx_audit_org_agent ON audit_log(org_id, agent_id);
     CREATE INDEX IF NOT EXISTS idx_audit_created ON audit_log(created_at);
   `);
 

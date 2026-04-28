@@ -93,19 +93,19 @@ export default function SettingsPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="flex flex-col gap-2">
                   <label className="label">Full Name</label>
-                  <input type="text" defaultValue="John Doe" className="input-field" />
+                  <input type="text" defaultValue="John Doe" className="w-full px-4 py-3 bg-background border border-border rounded-md outline-none focus:border-accent-primary transition-colors text-sm font-medium" />
                 </div>
                 <div className="flex flex-col gap-2">
                   <label className="label">Email Address</label>
-                  <input type="email" defaultValue="john@phantom.ai" className="input-field" />
+                  <input type="email" defaultValue="john@phantom.ai" className="w-full px-4 py-3 bg-background border border-border rounded-md outline-none focus:border-accent-primary transition-colors text-sm font-medium" />
                 </div>
                 <div className="flex flex-col gap-2">
                   <label className="label">Organization</label>
-                  <input type="text" defaultValue="Phantom AI" className="input-field" />
+                  <input type="text" defaultValue="Phantom AI" className="w-full px-4 py-3 bg-background border border-border rounded-md outline-none focus:border-accent-primary transition-colors text-sm font-medium" />
                 </div>
                 <div className="flex flex-col gap-2">
                   <label className="label">Timezone</label>
-                  <select className="input-field">
+                  <select className="w-full px-4 py-3 bg-background border border-border rounded-md outline-none focus:border-accent-primary transition-colors text-sm font-medium">
                     <option>Pacific Time (PT)</option>
                     <option>Eastern Time (ET)</option>
                     <option>GMT / UTC</option>
@@ -243,11 +243,7 @@ export default function SettingsPage() {
         </main>
       </div>
 
-      <style jsx>{`
-        .input-field {
-          @apply w-full px-4 py-3 bg-background border border-border rounded-md outline-none focus:border-accent-primary transition-colors text-sm font-medium;
-        }
-      `}</style>
+
     </div>
   );
 }

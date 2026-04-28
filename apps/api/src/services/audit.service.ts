@@ -1,4 +1,5 @@
-import { query } from '../db/pool.js';
+import type pg from 'pg';
+import { query, pool } from '../db/pool.js';
 import { computeAuditHash } from '../lib/crypto.js';
 
 export interface AuditEntry {
@@ -30,43 +31,59 @@ export interface LogActionInput {
 }
 
 /** Append an immutable entry to the audit ledger. */
-export async function logAction(input: LogActionInput): Promise<AuditEntry> {
-  // Get previous hash for chaining
-  const prevResult = await query<{ hash: string }>(
-    `SELECT hash FROM audit_log WHERE org_id = $1 ORDER BY id DESC LIMIT 1`,
-    [input.orgId],
-  );
-  const prevHash = prevResult.rows[0]?.hash || null;
+export async function logAction(
+  input: LogActionInput,
+  client?: pg.PoolClient,
+): Promise<AuditEntry> {
+  const txClient = client || (await pool.connect());
+  const createdTx = !client;
 
-  // Compute hash for this entry
-  const hash = computeAuditHash({
-    agent_id: input.agentId,
-    action: input.action,
-    resource: input.resource,
-    result: input.result,
-    prev_hash: prevHash || undefined,
-  });
+  try {
+    if (createdTx) await txClient.query('BEGIN');
 
-  const result = await query<AuditEntry>(
-    `INSERT INTO audit_log (org_id, agent_id, credential_id, token_id, action, resource, result, reasoning, metadata, hash, prev_hash)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
-     RETURNING *`,
-    [
-      input.orgId,
-      input.agentId,
-      input.credentialId || null,
-      input.tokenId || null,
-      input.action,
-      input.resource || null,
-      input.result,
-      input.reasoning || null,
-      JSON.stringify(input.metadata || {}),
-      hash,
-      prevHash,
-    ],
-  );
+    // Get previous hash for chaining and lock the last row
+    const prevResult = await txClient.query<{ hash: string }>(
+      `SELECT hash FROM audit_log WHERE org_id = $1 ORDER BY id DESC LIMIT 1 FOR UPDATE`,
+      [input.orgId],
+    );
+    const prevHash = prevResult.rows[0]?.hash || null;
 
-  return result.rows[0];
+    // Compute hash for this entry
+    const hash = computeAuditHash({
+      agent_id: input.agentId,
+      action: input.action,
+      resource: input.resource,
+      result: input.result,
+      prev_hash: prevHash || undefined,
+    });
+
+    const result = await txClient.query<AuditEntry>(
+      `INSERT INTO audit_log (org_id, agent_id, credential_id, token_id, action, resource, result, reasoning, metadata, hash, prev_hash)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+       RETURNING *`,
+      [
+        input.orgId,
+        input.agentId,
+        input.credentialId || null,
+        input.tokenId || null,
+        input.action,
+        input.resource || null,
+        input.result,
+        input.reasoning || null,
+        JSON.stringify(input.metadata || {}),
+        hash,
+        prevHash,
+      ],
+    );
+
+    if (createdTx) await txClient.query('COMMIT');
+    return result.rows[0];
+  } catch (err) {
+    if (createdTx) await txClient.query('ROLLBACK');
+    throw err;
+  } finally {
+    if (createdTx) txClient.release();
+  }
 }
 
 /** Query audit log for an org with filters. */
@@ -126,11 +143,19 @@ export async function verifyAuditChain(orgId: string): Promise<{
     [orgId],
   );
 
-  for (let i = 1; i < result.rows.length; i++) {
+  for (let i = 0; i < result.rows.length; i++) {
     const current = result.rows[i];
-    const previous = result.rows[i - 1];
+    const previous = i > 0 ? result.rows[i - 1] : null;
 
-    if (current.prev_hash !== previous.hash) {
+    const expectedHash = computeAuditHash({
+      agent_id: current.agent_id,
+      action: current.action,
+      resource: current.resource || undefined,
+      result: current.result,
+      prev_hash: previous?.hash,
+    });
+
+    if (current.hash !== expectedHash || (i > 0 && current.prev_hash !== previous!.hash)) {
       return { valid: false, brokenAt: current.id, totalEntries: result.rows.length };
     }
   }

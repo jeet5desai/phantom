@@ -70,7 +70,7 @@ export function registerTokenRoutes(app: FastifyInstance) {
   /** Revoke a specific token. */
   app.delete('/api/v1/tokens/:tokenId', async (request, reply) => {
     const { tokenId } = request.params as { tokenId: string };
-    const revoked = await tokenService.revokeToken(tokenId);
+    const revoked = await tokenService.revokeToken(request.org.id, tokenId);
 
     if (!revoked) {
       return reply
@@ -105,6 +105,7 @@ export function registerTokenRoutes(app: FastifyInstance) {
     }
 
     try {
+      // Remove parentAgentId before passing to createToken via createDelegatedToken
       const token = await tokenService.createDelegatedToken({
         orgId: request.org.id,
         agentId: body.childAgentId,

@@ -30,20 +30,6 @@ export async function storeCredential(
   return result.rows[0];
 }
 
-/** Retrieve and decrypt a credential. NEVER expose this to agents directly. */
-export async function retrieveCredential(
-  orgId: string,
-  credentialId: string,
-): Promise<string | null> {
-  const result = await query<{ encrypted_key: string; iv: string }>(
-    `SELECT encrypted_key, iv FROM credentials WHERE id = $1 AND org_id = $2`,
-    [credentialId, orgId],
-  );
-
-  if (!result.rows[0]) return null;
-  return decrypt(result.rows[0].encrypted_key, result.rows[0].iv);
-}
-
 /** List credentials for an org (metadata only, no decryption). */
 export async function listCredentials(orgId: string): Promise<Credential[]> {
   const result = await query<Credential>(

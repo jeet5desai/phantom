@@ -81,7 +81,6 @@ export function computeAuditHash(entry: {
     resource: entry.resource,
     result: entry.result,
     prev_hash: entry.prev_hash || '',
-    timestamp: Date.now(),
   });
   return crypto.createHash('sha256').update(payload).digest('hex');
 }

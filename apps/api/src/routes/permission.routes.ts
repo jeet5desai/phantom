@@ -76,6 +76,11 @@ export function registerPermissionRoutes(app: FastifyInstance) {
         .send({ error: 'MISSING_AGENT_ID', message: 'agentId query param required.' });
     }
 
+    const agent = await getAgent(request.org.id, agentId);
+    if (!agent) {
+      return reply.code(404).send({ error: 'NOT_FOUND', message: 'Agent not found.' });
+    }
+
     const deleted = await permissionService.revokePermission(agentId, permissionId);
     if (!deleted) {
       return reply.code(404).send({ error: 'NOT_FOUND' });
