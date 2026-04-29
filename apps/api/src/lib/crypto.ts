@@ -18,7 +18,7 @@ export function hashApiKey(key: string): string {
 
 /** Generate a new API key and its hash. */
 export function generateApiKey(): { raw: string; hash: string } {
-  const raw = `ak_live_${nanoid(40)}`;
+  const raw = `ph_live_${nanoid(40)}`;
   return { raw, hash: hashApiKey(raw) };
 }
 

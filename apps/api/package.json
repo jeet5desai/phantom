@@ -1,5 +1,5 @@
 {
-  "name": "@agentkey/api",
+  "name": "@phantom/api",
   "version": "0.1.0",
   "private": true,
   "type": "module",

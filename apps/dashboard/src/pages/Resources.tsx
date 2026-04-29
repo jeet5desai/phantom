@@ -22,7 +22,7 @@ const CATEGORIES = [
     items: [
       { name: 'Identity Management', slug: 'identity-management' },
       { name: 'Policy Engine 101', slug: 'policy-engine' },
-      { name: 'Managing AgentKeys', slug: 'agentkeys' },
+      { name: 'Managing Phantom Keys', slug: 'identity-keys' },
     ],
     color: 'text-accent-primary',
     bgColor: 'bg-accent-light',
@@ -251,7 +251,7 @@ export default function Resources() {
                   Zero-Trust Identities in OpenClaw
                 </h4>
                 <p className="text-[11px] text-text-secondary mt-1">
-                  Mastering the AgentKey lifecycle.
+                  Mastering the Phantom Key lifecycle.
                 </p>
               </div>
             </Link>

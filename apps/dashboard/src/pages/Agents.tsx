@@ -478,7 +478,7 @@ export default function Agents() {
             <div className="p-4 bg-accent-light rounded-lg flex gap-3 items-start border border-accent-primary/10">
               <Rocket size={18} className="text-accent-primary mt-0.5 shrink-0" />
               <p className="text-xs text-text-secondary leading-relaxed">
-                A unique cryptographic identity will be generated in the AgentKey HSM for secure,
+                A unique cryptographic identity will be generated in the Phantom HSM for secure,
                 governed execution.
               </p>
             </div>

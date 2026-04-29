@@ -1,14 +1,14 @@
 /**
- * @agentkey/sdk — TypeScript SDK for the AgentKey platform.
+ * @phantom/sdk — TypeScript SDK for the Phantom platform.
  *
  * Usage:
- *   import { AgentKey } from '@agentkey/sdk';
- *   const ak = new AgentKey({ apiKey: 'ak_live_...' });
+ *   import { Phantom } from '@phantom/sdk';
+ *   const ph = new Phantom({ apiKey: 'ph_live_...' });
  */
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
-export interface AgentKeyConfig {
+export interface PhantomConfig {
   apiKey: string;
   baseUrl?: string;
 }
@@ -269,14 +269,14 @@ class AuditResource {
 
 // ─── Main Client ────────────────────────────────────────────────────────────
 
-export class AgentKey {
+export class Phantom {
   readonly agents: AgentsResource;
   readonly tokens: TokensResource;
   readonly credentials: CredentialsResource;
   readonly permissions: PermissionsResource;
   readonly audit: AuditResource;
 
-  constructor(config: AgentKeyConfig) {
+  constructor(config: PhantomConfig) {
     const baseUrl = config.baseUrl || 'http://localhost:3100';
     const http = new HttpClient(baseUrl, config.apiKey);
 
@@ -288,4 +288,4 @@ export class AgentKey {
   }
 }
 
-export default AgentKey;
+export default Phantom;

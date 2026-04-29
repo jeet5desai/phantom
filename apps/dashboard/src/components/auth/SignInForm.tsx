@@ -95,7 +95,7 @@ export default function SignInForm() {
       <div className="w-full max-w-md min-w-[400px] sm:min-w-[500px] p-8 glass rounded-xl border border-border flex flex-col">
         <div className="text-center mb-8">
           <h1 className="text-2xl font-display font-bold mb-2 text-text-primary">Welcome Back</h1>
-          <p className="text-text-secondary text-sm">Sign in to your AgentKey account</p>
+          <p className="text-text-secondary text-sm">Sign in to your Phantom account</p>
         </div>
 
         {error && (

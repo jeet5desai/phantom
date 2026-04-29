@@ -53,7 +53,7 @@ app.setErrorHandler((error: Error, request, reply) => {
 
 app.get('/health', async () => ({
   status: 'ok',
-  service: 'agentkey-api',
+  service: 'phantom-api',
   version: '0.1.0',
   timestamp: new Date().toISOString(),
 }));
@@ -79,7 +79,7 @@ async function start() {
     console.log(`
 ╔═══════════════════════════════════════════╗
 ║                                           ║
-║   🔐 AgentKey API v0.1.0                 ║
+║   🔐 Phantom API v0.1.0                  ║
 ║   Running on http://localhost:${config.port}      ║
 ║   Environment: ${config.env.padEnd(23)}║
 ║                                           ║

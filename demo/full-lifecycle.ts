@@ -1,7 +1,7 @@
 /**
- * AgentKey — Full Lifecycle Demo
+ * Phantom — Full Lifecycle Demo
  *
- * This script exercises the entire AgentKey flow:
+ * This script exercises the entire Phantom flow:
  * 1. Create an agent with identity
  * 2. Store a credential in the vault
  * 3. Grant permissions
@@ -12,7 +12,7 @@
  * 8. Kill switch — revoke all tokens
  * 9. Verify revoked token fails
  *
- * Usage: API_KEY=ak_... npx tsx demo/full-lifecycle.ts
+ * Usage: API_KEY=ph_... npx tsx demo/full-lifecycle.ts
  */
 
 const API_BASE = 'http://localhost:3100';
@@ -20,7 +20,7 @@ const apiKey = process.env.API_KEY;
 
 if (!apiKey) {
   console.error(
-    'Missing API_KEY env var. Run the seed first, then: API_KEY=ak_... npx tsx demo/full-lifecycle.ts',
+    'Missing API_KEY env var. Run the seed first, then: API_KEY=ph_... npx tsx demo/full-lifecycle.ts',
   );
   process.exit(1);
 }
@@ -48,10 +48,10 @@ function log(emoji: string, msg: string, detail?: unknown) {
 
 async function main() {
   console.log('\n╔═══════════════════════════════════════════╗');
-  console.log('║   🔐 AgentKey — Full Lifecycle Demo      ║');
+  console.log('║   🔐 Phantom — Full Lifecycle Demo       ║');
   console.log('╚═══════════════════════════════════════════╝\n');
 
-  log('🔑', `Using API Key: ${apiKey.slice(0, 20)}...`);
+  log('🔑', `Using API Key: ${apiKey?.slice(0, 20)}...`);
 
   // 1. Create Agent
   const agentRes = await request(

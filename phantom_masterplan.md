@@ -1,4 +1,4 @@
-# 🔐 AgentKey — Complete Startup Masterplan
+# 🔐 Phantom — Complete Startup Masterplan
 
 ---
 
@@ -8,7 +8,7 @@ Imagine you have a bunch of **robot helpers** (AI agents). One robot can send em
 
 **The problem:** Right now, you give each robot ALL your keys to EVERYTHING. The email robot also has your credit card key. If the email robot goes crazy, it can charge people money. 😱
 
-**AgentKey is the keychain manager.**
+**Phantom is the keychain manager.**
 
 - Each robot gets its **own name tag** (identity) — so you always know WHO did WHAT
 - Each robot gets **only the keys it needs** — email robot gets email key, NOT credit card key
@@ -17,9 +17,9 @@ Imagine you have a bunch of **robot helpers** (AI agents). One robot can send em
 - You have a **big red button** (kill switch) — if a robot goes crazy, press it, ALL its keys stop working instantly
 
 ```
-WITHOUT AgentKey:                    WITH AgentKey:
+WITHOUT Phantom:                    WITH Phantom:
 
-Robot → 🔑🔑🔑🔑 ALL keys          Robot → AgentKey → 🔑 only email key
+Robot → 🔑🔑🔑🔑 ALL keys          Robot → Phantom → 🔑 only email key
   😱 "I can do anything!"             ✅ "I can only send emails"
                                        ⏰ "And only for 5 minutes"
                                        📝 "And everything I do is logged"
@@ -33,30 +33,30 @@ Robot → 🔑🔑🔑🔑 ALL keys          Robot → AgentKey → 🔑 only em
 sequenceDiagram
     participant Dev as Developer App
     participant Orch as Orchestrator Agent
-    participant AK as AgentKey Platform
+    participant PH as Phantom Platform
     participant Vault as Credential Vault
     participant Sub as Sub-Agent
     participant API as External API (Stripe)
 
     Dev->>Orch: "Process refund for order #123"
-    Orch->>AK: Request auth token (scope: stripe:refunds:write)
-    AK->>AK: Check permission graph
-    AK->>Vault: Fetch scoped credential
-    Vault-->>AK: Time-limited token (300s)
-    AK-->>Orch: ✅ Token granted
+    Orch->>PH: Request auth token (scope: stripe:refunds:write)
+    PH->>PH: Check permission graph
+    PH->>Vault: Fetch scoped credential
+    Vault-->>PH: Time-limited token (300s)
+    PH-->>Orch: ✅ Token granted
     Orch->>Sub: Delegate task + token (scope ⊆ parent)
     Sub->>API: Call Stripe API with scoped token
     API-->>Sub: Refund processed
     Sub-->>Orch: Done
-    AK->>AK: Log everything to audit ledger (SHA-256 signed)
+    PH->>PH: Log everything to audit ledger (SHA-256 signed)
 ```
 
 ### Flow in Plain English
 
 1. **Developer's app** tells the orchestrator agent: "Do a task"
-2. **Orchestrator** asks AgentKey: "Can I access Stripe refunds?"
-3. **AgentKey** checks the permission graph → ✅ allowed
-4. **AgentKey** creates a **temporary token** (expires in 5 min) from the vault
+2. **Orchestrator** asks Phantom: "Can I access Stripe refunds?"
+3. **Phantom** checks the permission graph → ✅ allowed
+4. **Phantom** creates a **temporary token** (expires in 5 min) from the vault
 5. **Orchestrator** can delegate to a **sub-agent**, but only with EQUAL or FEWER permissions
 6. **Sub-agent** uses the token to call Stripe
 7. **Everything** is logged with SHA-256 signatures — tamper-proof
@@ -168,22 +168,22 @@ CREATE TABLE tokens (
 ### SDK Design (What Developers Use)
 
 ```typescript
-// Install: npm install @agentkey/sdk
+// Install: npm install @phantom/sdk
 
-import { AgentKey } from '@agentkey/sdk';
+import { Phantom } from '@phantom/sdk';
 
 // Initialize
-const ak = new AgentKey({ apiKey: 'ak_live_...' });
+const ph = new Phantom({ apiKey: 'ph_live_...' });
 
 // 1. Create an agent identity
-const agent = await ak.agents.create({
+const agent = await ph.agents.create({
   name: 'invoice-processor',
   model: 'gpt-4',
   permissions: ['stripe:invoices:read', 'gmail:send'],
 });
 
 // 2. Request a scoped token for a task
-const token = await ak.tokens.create({
+const token = await ph.tokens.create({
   agentId: agent.id,
   scopes: ['stripe:invoices:read'],
   ttl: 300, // 5 minutes
@@ -196,10 +196,10 @@ const stripeData = await agent.execute({
 });
 
 // 4. Check audit log
-const logs = await ak.audit.list({ agentId: agent.id, last: 10 });
+const logs = await ph.audit.list({ agentId: agent.id, last: 10 });
 
 // 5. Kill switch — revoke everything
-await ak.agents.revoke(agent.id);
+await ph.agents.revoke(agent.id);
 ```
 
 ---
@@ -214,7 +214,7 @@ await ak.agents.revoke(agent.id);
 | 3    | Agent identity + credential vault       | `POST /agents`, `POST /credentials`          |
 | 4    | Permission graph + token issuance       | `POST /tokens` with scope validation         |
 | 5    | Audit ledger + kill switch              | Append-only log, `DELETE /agents/:id/tokens` |
-| 6    | TypeScript SDK + docs site              | `npm install @agentkey/sdk` works            |
+| 6    | TypeScript SDK + docs site              | `npm install @phantom/sdk` works             |
 
 ### Phase 2: Validate (Weeks 7–10)
 
@@ -277,14 +277,14 @@ await ak.agents.revoke(agent.id);
 | 15  | **Shopify**            | E-commerce agents       |
 
 > [!TIP]
-> **You don't actually "integrate" with all these on day one.** Your vault stores ANY API key. The integration is just pre-built permission templates (e.g., "Stripe" comes with `invoices:read`, `refunds:write`, etc. pre-defined). The actual API call is made by the developer's agent, not by AgentKey.
+> **You don't actually "integrate" with all these on day one.** Your vault stores ANY API key. The integration is just pre-built permission templates (e.g., "Stripe" comes with `invoices:read`, `refunds:write`, etc. pre-defined). The actual API call is made by the developer's agent, not by Phantom.
 
 ### What "Integration" Actually Means
 
 ```
 Level 1 (MVP):     Store API key + define permission scopes → 1 day per platform
 Level 2 (Better):  OAuth2 flow so users connect accounts in your dashboard → 3-5 days
-Level 3 (Premium): Proxy requests through AgentKey for full audit → 1-2 weeks
+Level 3 (Premium): Proxy requests through Phantom for full audit → 1-2 weeks
 ```
 
 **Start with Level 1. It's just a JSON config file per platform.**
@@ -297,13 +297,13 @@ Level 3 (Premium): Proxy requests through AgentKey for full audit → 1-2 weeks
 
 ```typescript
 // tests/sdk/agents.test.ts
-import { AgentKey } from '../src';
+import { Phantom } from '../src';
 
 describe('Agent Identity', () => {
-  const ak = new AgentKey({ apiKey: 'ak_test_...' });
+  const ph = new Phantom({ apiKey: 'ph_test_...' });
 
   test('create agent returns valid ID', async () => {
-    const agent = await ak.agents.create({
+    const agent = await ph.agents.create({
       name: 'test-agent',
       model: 'gpt-4',
     });
@@ -312,10 +312,10 @@ describe('Agent Identity', () => {
   });
 
   test('revoked agent cannot get tokens', async () => {
-    const agent = await ak.agents.create({ name: 'temp' });
-    await ak.agents.revoke(agent.id);
+    const agent = await ph.agents.create({ name: 'temp' });
+    await ph.agents.revoke(agent.id);
     await expect(
-      ak.tokens.create({ agentId: agent.id, scopes: ['stripe:read'], ttl: 60 }),
+      ph.tokens.create({ agentId: agent.id, scopes: ['stripe:read'], ttl: 60 }),
     ).rejects.toThrow('AGENT_REVOKED');
   });
 });
@@ -449,7 +449,7 @@ npx ts-node demo-app/orchestrator.ts
 ## 7. Quick Reference: Project Structure
 
 ```
-agentkey/
+phantom/
 ├── apps/
 │   ├── api/                 # Fastify API server
 │   │   ├── src/
@@ -458,10 +458,10 @@ agentkey/
 │   │   │   ├── db/          # migrations, queries
 │   │   │   └── index.ts
 │   │   └── package.json
-│   ├── dashboard/           # React dashboard (Phase 2)
+│   ├── dashboard/           # React dashboard
 │   └── docs/                # Mintlify docs site
 ├── packages/
-│   └── sdk/                 # @agentkey/sdk
+│   └── sdk/                 # @phantom/sdk
 │       ├── src/
 │       │   ├── client.ts
 │       │   ├── agents.ts

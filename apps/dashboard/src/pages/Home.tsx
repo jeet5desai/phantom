@@ -1,5 +1,3 @@
-
-
 import { useState, useEffect } from 'react';
 import { useRequest } from '@/hooks/useRequest';
 import {
@@ -23,6 +21,14 @@ interface RecentActivity {
   meta: string;
 }
 
+interface Agent {
+  id: string;
+  name: string;
+  model: string;
+  status: 'ACTIVE' | 'PAUSED' | 'REVOKED';
+  createdAt: string;
+}
+
 interface DashboardStats {
   activeAgents: number;
   totalTokens: number;
@@ -34,13 +40,22 @@ interface DashboardStats {
 export default function Home() {
   const request = useRequest();
   const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [recentAgents, setRecentAgents] = useState<Agent[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetchStats = async () => {
     setLoading(true);
-    const data = await request('GET', '/api/v1/dashboard/stats');
-    if (data) {
-      setStats(data);
+    const [statsData, agentsData] = await Promise.all([
+      request('GET', '/api/v1/dashboard/stats'),
+      request('GET', '/api/v1/agents'),
+    ]);
+    if (statsData) setStats(statsData);
+    if (agentsData?.agents) {
+      // Sort by creation date (newest first) and take top 4
+      const sorted = agentsData.agents.sort(
+        (a: Agent, b: Agent) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+      );
+      setRecentAgents(sorted.slice(0, 4));
     }
     setLoading(false);
   };
@@ -49,11 +64,21 @@ export default function Home() {
     let isMounted = true;
     const load = async () => {
       setLoading(true);
-      const data = await request('GET', '/api/v1/dashboard/stats');
-      if (isMounted && data) {
-        setStats(data);
+      const [statsData, agentsData] = await Promise.all([
+        request('GET', '/api/v1/dashboard/stats'),
+        request('GET', '/api/v1/agents'),
+      ]);
+      if (isMounted) {
+        if (statsData) setStats(statsData);
+        if (agentsData?.agents) {
+          const sorted = agentsData.agents.sort(
+            (a: Agent, b: Agent) =>
+              new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+          );
+          setRecentAgents(sorted.slice(0, 4));
+        }
+        setLoading(false);
       }
-      if (isMounted) setLoading(false);
     };
     load();
     return () => {
@@ -67,7 +92,7 @@ export default function Home() {
         <div className="flex flex-col gap-1">
           <h1 className="text-4xl font-display font-bold">Security Overview</h1>
           <p className="text-text-secondary text-lg">
-            Real-time governance and audit metrics for AgentKey.
+            Real-time governance and audit metrics for Phantom.
           </p>
         </div>
         <button
@@ -140,29 +165,76 @@ export default function Home() {
 
       {/* Main Content Area */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-lg">
-        {/* Agents Preview (could be real, but for now we focus on the Activity Stream) */}
-        <section className="lg:col-span-2 glass overflow-hidden">
+        {/* Agents Preview */}
+        <section className="lg:col-span-2 glass overflow-hidden flex flex-col">
           <div className="px-lg py-4 border-b border-border flex items-center justify-between bg-surface">
             <div className="flex items-center gap-3">
               <Bot size={18} className="text-text-secondary" />
               <h3 className="text-lg font-display font-bold">Recent Agents</h3>
             </div>
           </div>
-          <div className="p-12 flex flex-col items-center justify-center text-center gap-4">
-            <div className="w-16 h-16 bg-surface-hover rounded-full flex items-center justify-center">
-              <Bot size={32} className="text-text-tertiary" />
-            </div>
-            <div className="flex flex-col gap-1">
-              <p className="text-text-primary font-bold">Manage your Agent Identities</p>
-              <p className="text-text-tertiary text-sm">
-                Navigate to the Agents tab to manage all registered agents.
-              </p>
-            </div>
+          <div className="p-lg flex-1">
+            {loading ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {[1, 2, 3, 4].map((i) => (
+                  <div key={i} className="h-24 bg-surface-hover rounded-lg animate-pulse" />
+                ))}
+              </div>
+            ) : recentAgents.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {recentAgents.map((agent: Agent) => (
+                  <Link
+                    key={agent.id}
+                    to={`/agents/${agent.id}`}
+                    className="flex items-center justify-between p-4 bg-surface-hover border border-border rounded-lg hover:border-accent-primary transition-colors group"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-accent-light rounded-lg flex items-center justify-center text-accent-primary group-hover:scale-110 transition-transform">
+                        <Bot size={20} />
+                      </div>
+                      <div className="flex flex-col">
+                        <span className="font-bold text-text-primary text-sm group-hover:text-accent-primary transition-colors">
+                          {agent.name}
+                        </span>
+                        <span className="text-xs text-text-tertiary">Model: {agent.model}</span>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {agent.status === 'ACTIVE' && (
+                        <span className="w-2 h-2 rounded-full bg-success animate-pulse"></span>
+                      )}
+                      {agent.status === 'PAUSED' && (
+                        <span className="w-2 h-2 rounded-full bg-warning"></span>
+                      )}
+                      <span
+                        className={`text-[10px] font-bold uppercase ${agent.status === 'REVOKED' ? 'text-error' : agent.status === 'PAUSED' ? 'text-warning' : 'text-text-secondary'}`}
+                      >
+                        {agent.status}
+                      </span>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            ) : (
+              <div className="h-full flex flex-col items-center justify-center text-center gap-4 py-8">
+                <div className="w-16 h-16 bg-surface-hover rounded-full flex items-center justify-center">
+                  <Bot size={32} className="text-text-tertiary" />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <p className="text-text-primary font-bold">No Agents Found</p>
+                  <p className="text-text-tertiary text-sm">
+                    Get started by creating your first AI identity.
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
+          <div className="mt-auto p-lg border-t border-border bg-surface/50">
             <Link
               to="/agents"
-              className="text-accent-primary font-bold text-sm hover:underline flex items-center gap-1"
+              className="text-accent-primary font-bold text-sm hover:underline flex items-center gap-1 w-fit"
             >
-              Go to Agents <ChevronRight size={16} />
+              Manage All Agents <ChevronRight size={16} />
             </Link>
           </div>
         </section>
@@ -184,7 +256,7 @@ export default function Home() {
                   </div>
                 </div>
               ))
-            ) : (!stats || stats.recentActivity.length === 0) ? (
+            ) : !stats || stats.recentActivity.length === 0 ? (
               <p className="text-center py-8 text-text-tertiary italic text-sm">
                 No recent activity detected.
               </p>

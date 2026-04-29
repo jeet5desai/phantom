@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { AgentKey } from './index.js';
+import { Phantom } from './index.js';
 
 // Mock fetch globally
 const mockFetch = vi.fn();
@@ -13,11 +13,11 @@ function mockResponse(status: number, data: unknown) {
   };
 }
 
-describe('AgentKey SDK', () => {
-  let ak: AgentKey;
+describe('Phantom SDK', () => {
+  let ph: Phantom;
 
   beforeEach(() => {
-    ak = new AgentKey({ apiKey: 'ak_live_test123', baseUrl: 'http://localhost:3100' });
+    ph = new Phantom({ apiKey: 'ph_live_test123', baseUrl: 'http://localhost:3100' });
     mockFetch.mockReset();
   });
 
@@ -29,7 +29,7 @@ describe('AgentKey SDK', () => {
       };
       mockFetch.mockResolvedValueOnce(mockResponse(201, mockAgent));
 
-      const result = await ak.agents.create({ name: 'test-agent', model: 'gpt-4' });
+      const result = await ph.agents.create({ name: 'test-agent', model: 'gpt-4' });
 
       expect(result.agent.id).toBe('agt_test123');
       expect(result.privateKey).toBeDefined();
@@ -42,7 +42,7 @@ describe('AgentKey SDK', () => {
     it('should list agents', async () => {
       mockFetch.mockResolvedValueOnce(mockResponse(200, { agents: [] }));
 
-      const result = await ak.agents.list();
+      const result = await ph.agents.list();
       expect(result.agents).toEqual([]);
     });
 
@@ -51,7 +51,7 @@ describe('AgentKey SDK', () => {
         mockResponse(200, { agent: { id: 'agt_test' }, message: 'Revoked' }),
       );
 
-      const result = await ak.agents.revoke('agt_test');
+      const result = await ph.agents.revoke('agt_test');
       expect(result.message).toBe('Revoked');
     });
 
@@ -60,7 +60,7 @@ describe('AgentKey SDK', () => {
         mockResponse(200, { message: 'Kill switch activated', revokedCount: 5 }),
       );
 
-      const result = await ak.agents.killSwitch('agt_test');
+      const result = await ph.agents.killSwitch('agt_test');
       expect(result.revokedCount).toBe(5);
     });
   });
@@ -72,7 +72,7 @@ describe('AgentKey SDK', () => {
       };
       mockFetch.mockResolvedValueOnce(mockResponse(201, mockToken));
 
-      const result = await ak.tokens.create({
+      const result = await ph.tokens.create({
         agentId: 'agt_test',
         scopes: ['stripe:invoices:read'],
         ttl: 300,
@@ -84,14 +84,14 @@ describe('AgentKey SDK', () => {
     it('should verify a token', async () => {
       mockFetch.mockResolvedValueOnce(mockResponse(200, { valid: true, token: { id: 'tok_abc' } }));
 
-      const result = await ak.tokens.verify('tok_abc');
+      const result = await ph.tokens.verify('tok_abc');
       expect(result.valid).toBe(true);
     });
 
     it('should handle invalid token verification', async () => {
       mockFetch.mockResolvedValueOnce(mockResponse(401, { valid: false, reason: 'Token expired' }));
 
-      await expect(ak.tokens.verify('tok_expired')).rejects.toThrow();
+      await expect(ph.tokens.verify('tok_expired')).rejects.toThrow();
     });
   });
 
@@ -103,7 +103,7 @@ describe('AgentKey SDK', () => {
         }),
       );
 
-      const result = await ak.credentials.store('stripe', 'sk_test_123', 'My Stripe');
+      const result = await ph.credentials.store('stripe', 'sk_test_123', 'My Stripe');
       expect(result.credential.service).toBe('stripe');
     });
 
@@ -112,7 +112,7 @@ describe('AgentKey SDK', () => {
         mockResponse(200, { credentials: [{ id: 'cred_1' }, { id: 'cred_2' }] }),
       );
 
-      const result = await ak.credentials.list();
+      const result = await ph.credentials.list();
       expect(result.credentials).toHaveLength(2);
     });
   });
@@ -125,7 +125,7 @@ describe('AgentKey SDK', () => {
         }),
       );
 
-      const result = await ak.permissions.grant('agt_test', 'stripe:invoices', 'read');
+      const result = await ph.permissions.grant('agt_test', 'stripe:invoices', 'read');
       expect(result.permission.resource).toBe('stripe:invoices');
     });
 
@@ -138,7 +138,7 @@ describe('AgentKey SDK', () => {
         }),
       );
 
-      const result = await ak.permissions.check('agt_test', ['stripe:invoices:read']);
+      const result = await ph.permissions.check('agt_test', ['stripe:invoices:read']);
       expect(result.allowed).toBe(true);
     });
   });
@@ -147,14 +147,14 @@ describe('AgentKey SDK', () => {
     it('should list audit entries', async () => {
       mockFetch.mockResolvedValueOnce(mockResponse(200, { entries: [], total: 0 }));
 
-      const result = await ak.audit.list({ agentId: 'agt_test' });
+      const result = await ph.audit.list({ agentId: 'agt_test' });
       expect(result.total).toBe(0);
     });
 
     it('should verify audit chain', async () => {
       mockFetch.mockResolvedValueOnce(mockResponse(200, { valid: true, totalEntries: 42 }));
 
-      const result = await ak.audit.verifyChain();
+      const result = await ph.audit.verifyChain();
       expect(result.valid).toBe(true);
     });
   });
@@ -171,7 +171,7 @@ describe('AgentKey SDK', () => {
       );
 
       await expect(
-        ak.tokens.create({
+        ph.tokens.create({
           agentId: 'agt_test',
           scopes: ['admin:*'],
         }),
@@ -184,7 +184,7 @@ describe('AgentKey SDK', () => {
       );
 
       try {
-        await ak.agents.get('agt_nonexistent');
+        await ph.agents.get('agt_nonexistent');
       } catch (err) {
         const error = err as SDKError;
         expect(error.status).toBe(404);
@@ -197,13 +197,13 @@ describe('AgentKey SDK', () => {
     it('should send API key as Bearer token', async () => {
       mockFetch.mockResolvedValueOnce(mockResponse(200, { agents: [] }));
 
-      await ak.agents.list();
+      await ph.agents.list();
 
       expect(mockFetch).toHaveBeenCalledWith(
         expect.any(String),
         expect.objectContaining({
           headers: expect.objectContaining({
-            Authorization: 'Bearer ak_live_test123',
+            Authorization: 'Bearer ph_live_test123',
           }),
         }),
       );

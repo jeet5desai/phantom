@@ -1,19 +1,19 @@
 /**
- * AgentKey — Real Task Simulator
+ * Phantom — Real Task Simulator
  *
  * This script simulates a multi-step autonomous task performed by an AI Agent.
- * It demonstrates how the AgentKey backend captures real-time governance checks
+ * It demonstrates how the Phantom backend captures real-time governance checks
  * and audit trails for a complex workflow.
  *
  * Workflow: "Summarize sensitive emails and draft a reply"
  */
 export {};
 
-const API_BASE = process.env.AGENTKEY_API_URL || 'http://localhost:3100';
-const DEFAULT_API_KEY = process.env.AGENTKEY_API_KEY || '';
+const API_BASE = process.env.PHANTOM_API_URL || 'http://localhost:3100';
+const DEFAULT_API_KEY = process.env.PHANTOM_API_KEY || '';
 
 if (!DEFAULT_API_KEY) {
-  console.error('❌ Set AGENTKEY_API_KEY environment variable before running this script.');
+  console.error('❌ Set PHANTOM_API_KEY environment variable before running this script.');
   process.exit(1);
 }
 

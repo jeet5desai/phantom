@@ -30,13 +30,13 @@ const DOCS_CONTENT: Record<string, DocSection> = {
         <div className="p-4 bg-accent-light border border-accent-primary/20 rounded-xl flex gap-4 items-start">
           <Info className="text-accent-primary shrink-0 mt-1" size={20} />
           <p className="text-sm text-accent-dark font-medium">
-            This guide assumes you have an existing OpenClaw project and a Phantom AgentKey.
+            This guide assumes you have an existing OpenClaw project and a Phantom Key.
           </p>
         </div>
 
         <h2 className="text-2xl font-bold mt-4">1. Install the SDK</h2>
         <div className="bg-[#1e1e2e] p-4 rounded-xl font-mono text-sm text-white overflow-x-auto border border-white/5 shadow-lg">
-          <code className="text-accent-primary">npm install</code> @agentkey/sdk-openclaw
+          <code className="text-accent-primary">npm install</code> @phantom/sdk-openclaw
         </div>
 
         <h2 className="text-2xl font-bold mt-4">2. Initialize the Identity Proxy</h2>
@@ -47,8 +47,8 @@ const DOCS_CONTENT: Record<string, DocSection> = {
         <div className="bg-[#1e1e2e] p-4 rounded-xl font-mono text-sm text-white overflow-x-auto border border-white/5 shadow-lg">
           <span className="text-purple-400">import</span> {'{ PhantomProxy }'}{' '}
           <span className="text-purple-400">from</span>{' '}
-          <span className="text-green-400">'@agentkey/sdk-openclaw'</span>;{'\n\n'}
-          <span className="text-gray-400">// Initialize with your AgentKey</span>
+          <span className="text-green-400">'@phantom/sdk-openclaw'</span>;{'\n\n'}
+          <span className="text-gray-400">// Initialize with your Phantom Key</span>
           {'\n'}
           <span className="text-purple-400">const</span> agent ={' '}
           <span className="text-purple-400">new</span> PhantomProxy({'{'}
@@ -85,7 +85,7 @@ const DOCS_CONTENT: Record<string, DocSection> = {
     content: (
       <div className="flex flex-col gap-6">
         <p className="text-lg text-text-secondary leading-relaxed">
-          Identity is the core of Phantom. Unlike traditional API keys, an AgentKey represents a
+          Identity is the core of Phantom. Unlike traditional API keys, a Phantom Key represents a
           living digital identity for your autonomous software.
         </p>
 
@@ -117,7 +117,7 @@ const DOCS_CONTENT: Record<string, DocSection> = {
         <div className="p-4 bg-error/5 border border-error/20 rounded-xl flex gap-4 items-start">
           <AlertTriangle className="text-error shrink-0 mt-1" size={20} />
           <p className="text-sm text-error font-medium">
-            Never share AgentKeys in client-side code. They should only be used in secure,
+            Never share Phantom Keys in client-side code. They should only be used in secure,
             server-side environments.
           </p>
         </div>
@@ -147,9 +147,9 @@ const DOCS_CONTENT: Record<string, DocSection> = {
       </div>
     ),
   },
-  agentkeys: {
-    title: 'Managing AgentKeys',
-    slug: 'agentkeys',
+  identity_keys: {
+    title: 'Managing Phantom Keys',
+    slug: 'identity-keys',
     content: (
       <div className="flex flex-col gap-6">
         <p className="text-lg text-text-secondary">
@@ -293,7 +293,7 @@ const DOC_GROUPS = [
     items: [
       { name: 'Identity Management', slug: 'identity-management' },
       { name: 'Policy Engine 101', slug: 'policy-engine' },
-      { name: 'Managing AgentKeys', slug: 'agentkeys' },
+      { name: 'Managing Phantom Keys', slug: 'identity-keys' },
     ],
   },
   {

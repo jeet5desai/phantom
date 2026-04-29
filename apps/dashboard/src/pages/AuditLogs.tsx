@@ -174,7 +174,7 @@ export default function AuditLogs() {
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.setAttribute('href', url);
-    link.setAttribute('download', `agentkey-audit-logs-${new Date().getTime()}.csv`);
+    link.setAttribute('download', `phantom-audit-logs-${new Date().getTime()}.csv`);
     link.style.visibility = 'hidden';
     document.body.appendChild(link);
     link.click();
