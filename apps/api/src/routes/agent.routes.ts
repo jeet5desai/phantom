@@ -79,6 +79,27 @@ export function registerAgentRoutes(app: FastifyInstance) {
     return { agent };
   });
 
+  /** Permanently delete an agent. */
+  app.delete('/api/v1/agents/:id', async (request, reply) => {
+    const { id } = request.params as { id: string };
+
+    const success = await agentService.deleteAgent(request.userId, id);
+    if (!success) {
+      return reply.status(404).send({ error: 'Agent not found' });
+    }
+
+    await logAction({
+      userId: request.userId,
+      agentId: id,
+      action: 'AGENT_DELETE',
+      resource: 'agent',
+      result: 'SUCCESS',
+      metadata: { deletedAt: new Date() },
+    });
+
+    return { success: true };
+  });
+
   /** Revoke an agent — marks as inactive. */
   app.post('/api/v1/agents/:agentId/revoke', async (request, reply) => {
     const { agentId } = request.params as { agentId: string };
@@ -91,6 +112,52 @@ export function registerAgentRoutes(app: FastifyInstance) {
     }
 
     return { agent, message: 'Agent revoked successfully.' };
+  });
+
+  /** Pause an agent. */
+  app.post('/api/v1/agents/:agentId/pause', async (request, reply) => {
+    const { agentId } = request.params as { agentId: string };
+    const agent = await agentService.pauseAgent(request.userId, agentId);
+
+    if (!agent) {
+      return reply
+        .code(404)
+        .send({ error: 'NOT_FOUND', message: 'Agent not found or not active.' });
+    }
+
+    await logAction({
+      userId: request.userId,
+      agentId,
+      action: 'AGENT_PAUSE',
+      resource: 'agent',
+      result: 'SUCCESS',
+      metadata: { pausedAt: new Date() },
+    });
+
+    return { agent, message: 'Agent paused successfully.' };
+  });
+
+  /** Resume an agent. */
+  app.post('/api/v1/agents/:agentId/resume', async (request, reply) => {
+    const { agentId } = request.params as { agentId: string };
+    const agent = await agentService.resumeAgent(request.userId, agentId);
+
+    if (!agent) {
+      return reply
+        .code(404)
+        .send({ error: 'NOT_FOUND', message: 'Agent not found or not paused.' });
+    }
+
+    await logAction({
+      userId: request.userId,
+      agentId,
+      action: 'AGENT_RESUME',
+      resource: 'agent',
+      result: 'SUCCESS',
+      metadata: { resumedAt: new Date() },
+    });
+
+    return { agent, message: 'Agent resumed successfully.' };
   });
 
   /** Kill switch — revoke ALL tokens for an agent. */

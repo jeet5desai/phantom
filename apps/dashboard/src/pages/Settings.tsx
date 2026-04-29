@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useUser, useClerk } from '@clerk/clerk-react';
+import { useRequest } from '@/hooks/useRequest';
 import { User, CreditCard, Smartphone, LogOut, Plus, Loader2, AlertCircle } from 'lucide-react';
 import ConfirmDialog from '@/components/ui/ConfirmDialog';
 
@@ -14,39 +15,7 @@ export default function Settings() {
   const { user, isLoaded } = useUser();
   const { signOut } = useClerk();
   const [activeTab, setActiveTab] = useState('general');
-  const [updating, setUpdating] = useState(false);
-
-  // Form states
-  const [fullName, setFullName] = useState(user?.fullName || '');
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
-  const [status, setStatus] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
-
-  const handleSave = async () => {
-    if (!user) return;
-    setUpdating(true);
-    try {
-      const names = fullName.split(' ');
-      const firstName = names[0] || '';
-      const lastName = names.slice(1).join(' ') || '';
-
-      await user.update({
-        firstName,
-        lastName,
-      });
-      setStatus({ type: 'success', message: 'Profile updated successfully!' });
-    } catch (err: unknown) {
-      let msg = 'Failed to update profile';
-      if (err instanceof Error) msg = err.message;
-      if (err && typeof err === 'object' && 'errors' in err) {
-        const errors = (err as { errors: Array<{ message: string }> }).errors;
-        if (errors?.[0]?.message) msg = errors[0].message;
-      }
-      setStatus({ type: 'error', message: msg });
-    } finally {
-      setUpdating(false);
-      setTimeout(() => setStatus(null), 5000);
-    }
-  };
 
   if (!isLoaded) {
     return (
@@ -97,154 +66,7 @@ export default function Settings() {
 
         {/* Content Area */}
         <main className="flex-1 glass p-lg lg:p-12 flex flex-col gap-10">
-          {activeTab === 'general' && (
-            <div className="flex flex-col gap-8 max-w-2xl animate-in slide-in-from-right-4 duration-300">
-              <div className="flex flex-col gap-2 border-b border-border pb-6">
-                <h3 className="text-2xl font-display font-bold">Profile Information</h3>
-                <p className="text-sm text-text-secondary">
-                  Update your personal details and how others see you on the platform.
-                </p>
-              </div>
-
-              {status && (
-                <div
-                  className={`p-4 rounded-xl flex items-center gap-3 animate-in fade-in slide-in-from-top-2 duration-300 ${
-                    status.type === 'success'
-                      ? 'bg-success-bg text-success border border-success/20'
-                      : 'bg-error-bg text-error border border-error/20'
-                  }`}
-                >
-                  <AlertCircle size={18} />
-                  <span className="text-sm font-bold">{status.message}</span>
-                </div>
-              )}
-
-              <div className="flex items-center gap-8">
-                <div className="w-24 h-24 bg-accent-light rounded-full flex items-center justify-center border-4 border-surface overflow-hidden relative group cursor-pointer">
-                  {user?.imageUrl ? (
-                    <img
-                      src={user.imageUrl}
-                      alt={user.fullName || ''}
-                      className="w-full h-full object-cover"
-                      loading="lazy"
-                      decoding="async"
-                    />
-                  ) : (
-                    <span className="text-3xl font-display font-bold text-accent-primary">
-                      {user?.firstName?.charAt(0)}
-                      {user?.lastName?.charAt(0)}
-                    </span>
-                  )}
-                  <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                    <Smartphone size={24} className="text-white" />
-                  </div>
-                </div>
-                <div className="flex flex-col gap-3">
-                  <button className="btn-primary py-2 text-sm">Change Avatar</button>
-                  <button className="btn-outline py-2 text-sm border-error text-error hover:bg-error-bg">
-                    Remove
-                  </button>
-                </div>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="flex flex-col gap-2">
-                  <label className="label">Full Name</label>
-                  <input
-                    type="text"
-                    value={fullName}
-                    onChange={(e) => setFullName(e.target.value)}
-                    className="w-full px-4 py-3 bg-background border border-border rounded-md outline-none focus:border-accent-primary transition-colors text-sm font-medium"
-                  />
-                </div>
-                <div className="flex flex-col gap-2">
-                  <label className="label">Email Address</label>
-                  <input
-                    type="email"
-                    defaultValue={user?.primaryEmailAddress?.emailAddress || ''}
-                    disabled
-                    className="w-full px-4 py-3 bg-background border border-border rounded-md outline-none opacity-50 cursor-not-allowed text-sm font-medium"
-                  />
-                </div>
-              </div>
-
-              <div className="flex justify-end gap-3 pt-6 border-t border-border mt-4">
-                <button
-                  onClick={() => {
-                    setFullName(user?.fullName || '');
-                  }}
-                  className="px-6 py-3 font-bold text-text-secondary hover:bg-surface-hover rounded-md transition-colors"
-                >
-                  Discard
-                </button>
-                <button onClick={handleSave} disabled={updating} className="btn-primary px-8 ">
-                  {updating ? 'Saving...' : 'Save Changes'}
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* {activeTab === 'security' && (
-            <div className="flex flex-col gap-8 max-w-2xl animate-in slide-in-from-right-4 duration-300">
-              <div className="flex flex-col gap-2 border-b border-border pb-6">
-                <h3 className="text-2xl font-display font-bold">Security Settings</h3>
-                <p className="text-sm text-text-secondary">
-                  Manage your password and account security preferences.
-                </p>
-              </div>
-
-              <div className="flex flex-col gap-6">
-                <div className="flex items-center justify-between p-6 bg-background rounded-xl border border-border group hover:border-accent-primary transition-colors cursor-pointer">
-                  <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 bg-surface rounded-lg flex items-center justify-center ">
-                      <Lock size={20} className="text-accent-primary" />
-                    </div>
-                    <div className="flex flex-col">
-                      <span className="font-bold">Password</span>
-                      <span className="text-xs text-text-secondary">Update your password</span>
-                    </div>
-                  </div>
-                  <ChevronRight
-                    size={20}
-                    className="text-text-tertiary group-hover:text-accent-primary group-hover:translate-x-1 transition-all"
-                  />
-                </div>
-
-                <div className="flex items-center justify-between p-6 bg-background rounded-xl border border-border group hover:border-accent-primary transition-colors cursor-pointer">
-                  <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 bg-surface rounded-lg flex items-center justify-center ">
-                      <Smartphone size={20} className="text-accent-primary" />
-                    </div>
-                    <div className="flex flex-col">
-                      <span className="font-bold">Two-Factor Authentication</span>
-                      <span className="text-xs text-text-secondary">
-                        Secure your account with 2FA
-                      </span>
-                    </div>
-                  </div>
-                  <ChevronRight
-                    size={20}
-                    className="text-text-tertiary group-hover:text-accent-primary group-hover:translate-x-1 transition-all"
-                  />
-                </div>
-
-                <div className="flex items-center justify-between p-6 bg-background rounded-xl border border-border group hover:border-accent-primary transition-colors cursor-pointer">
-                  <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 bg-surface rounded-lg flex items-center justify-center ">
-                      <Mail size={20} className="text-accent-primary" />
-                    </div>
-                    <div className="flex flex-col">
-                      <span className="font-bold">Session Management</span>
-                      <span className="text-xs text-text-secondary">Manage active sessions</span>
-                    </div>
-                  </div>
-                  <ChevronRight
-                    size={20}
-                    className="text-text-tertiary group-hover:text-accent-primary group-hover:translate-x-1 transition-all"
-                  />
-                </div>
-              </div>
-            </div>
-          )} */}
+          {activeTab === 'general' && <SettingsForm user={user!} />}
 
           {activeTab === 'billing' && (
             <div className="flex flex-col gap-8 animate-in slide-in-from-right-4 duration-300">
@@ -309,6 +131,188 @@ export default function Settings() {
         confirmText="Sign Out"
         variant="warning"
       />
+    </div>
+  );
+}
+
+function SettingsForm({ user }: { user: NonNullable<ReturnType<typeof useUser>['user']> }) {
+  const request = useRequest();
+  const [updating, setUpdating] = useState(false);
+  const [fullName, setFullName] = useState(user.fullName || '');
+  const [status, setStatus] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+
+  const handleSave = async () => {
+    setUpdating(true);
+    try {
+      const names = fullName.split(' ');
+      const firstName = names[0] || '';
+      const lastName = names.slice(1).join(' ') || '';
+
+      const updatedUser = await user.update({
+        firstName,
+        lastName,
+      });
+
+      // Sync the update with our database
+      await request('POST', '/api/v1/users/sync', {
+        email: updatedUser.primaryEmailAddress?.emailAddress || '',
+        firstName,
+        lastName,
+        imageUrl: updatedUser.imageUrl,
+      });
+
+      setStatus({ type: 'success', message: 'Profile updated successfully!' });
+    } catch (err: unknown) {
+      let msg = 'Failed to update profile';
+      if (err instanceof Error) msg = err.message;
+      if (err && typeof err === 'object' && 'errors' in err) {
+        const errors = (err as { errors: Array<{ message: string }> }).errors;
+        if (errors?.[0]?.message) msg = errors[0].message;
+      }
+      setStatus({ type: 'error', message: msg });
+    } finally {
+      setUpdating(false);
+      setTimeout(() => setStatus(null), 5000);
+    }
+  };
+
+  return (
+    <div className="flex flex-col gap-8 max-w-2xl animate-in slide-in-from-right-4 duration-300">
+      <div className="flex flex-col gap-2 border-b border-border pb-6">
+        <h3 className="text-2xl font-display font-bold">Profile Information</h3>
+        <p className="text-sm text-text-secondary">
+          Update your personal details and how others see you on the platform.
+        </p>
+      </div>
+
+      {status && (
+        <div
+          className={`p-4 rounded-xl flex items-center gap-3 animate-in fade-in slide-in-from-top-2 duration-300 ${
+            status.type === 'success'
+              ? 'bg-success-bg text-success border border-success/20'
+              : 'bg-error-bg text-error border border-error/20'
+          }`}
+        >
+          <AlertCircle size={18} />
+          <span className="text-sm font-bold">{status.message}</span>
+        </div>
+      )}
+
+      <div className="flex items-center gap-8">
+        <div className="w-24 h-24 bg-accent-light rounded-full flex items-center justify-center border-4 border-surface overflow-hidden relative group cursor-pointer">
+          {user.imageUrl ? (
+            <img
+              src={user.imageUrl}
+              alt={user.fullName || ''}
+              className="w-full h-full object-cover"
+              loading="lazy"
+              decoding="async"
+            />
+          ) : (
+            <span className="text-3xl font-display font-bold text-accent-primary">
+              {user.firstName?.charAt(0)}
+              {user.lastName?.charAt(0)}
+            </span>
+          )}
+          <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+            <Smartphone size={24} className="text-white" />
+          </div>
+        </div>
+        <div className="flex flex-col gap-3">
+          <input
+            type="file"
+            id="avatar-input"
+            className="hidden"
+            accept="image/*"
+            onChange={async (e) => {
+              const file = e.target.files?.[0];
+              if (!file || !user) return;
+              setUpdating(true);
+              try {
+                await user.setProfileImage({ file });
+                // Sync with DB
+                await request('POST', '/api/v1/users/sync', {
+                  email: user.primaryEmailAddress?.emailAddress || '',
+                  firstName: user.firstName,
+                  lastName: user.lastName,
+                  imageUrl: user.imageUrl,
+                });
+                setStatus({ type: 'success', message: 'Avatar updated successfully!' });
+              } catch {
+                setStatus({ type: 'error', message: 'Failed to update avatar' });
+              } finally {
+                setUpdating(false);
+              }
+            }}
+          />
+          <button
+            onClick={() => document.getElementById('avatar-input')?.click()}
+            disabled={updating}
+            className="btn-primary py-2 text-sm"
+          >
+            Change Avatar
+          </button>
+          <button
+            onClick={async () => {
+              if (!user) return;
+              setUpdating(true);
+              try {
+                await user.setProfileImage({ file: null });
+                // Sync with DB
+                await request('POST', '/api/v1/users/sync', {
+                  email: user.primaryEmailAddress?.emailAddress || '',
+                  firstName: user.firstName,
+                  lastName: user.lastName,
+                  imageUrl: null,
+                });
+                setStatus({ type: 'success', message: 'Avatar removed' });
+              } catch {
+                setStatus({ type: 'error', message: 'Failed to remove avatar' });
+              } finally {
+                setUpdating(false);
+              }
+            }}
+            disabled={updating}
+            className="btn-outline py-2 text-sm border-error text-error hover:bg-error-bg"
+          >
+            Remove
+          </button>
+        </div>
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="flex flex-col gap-2">
+          <label className="label">Full Name</label>
+          <input
+            type="text"
+            value={fullName}
+            onChange={(e) => setFullName(e.target.value)}
+            className="w-full px-4 py-3 bg-background border border-border rounded-md outline-none focus:border-accent-primary transition-colors text-sm font-medium"
+          />
+        </div>
+        <div className="flex flex-col gap-2">
+          <label className="label">Email Address</label>
+          <input
+            type="email"
+            defaultValue={user.primaryEmailAddress?.emailAddress || ''}
+            disabled
+            className="w-full px-4 py-3 bg-background border border-border rounded-md outline-none opacity-50 cursor-not-allowed text-sm font-medium"
+          />
+        </div>
+      </div>
+
+      <div className="flex justify-end gap-3 pt-6 border-t border-border mt-4">
+        <button
+          onClick={() => {
+            setFullName(user.fullName || '');
+          }}
+          className="px-6 py-3 font-bold text-text-secondary hover:bg-surface-hover rounded-md transition-colors"
+        >
+          Discard
+        </button>
+        <button onClick={handleSave} disabled={updating} className="btn-primary px-8 ">
+          {updating ? 'Saving...' : 'Save Changes'}
+        </button>
+      </div>
     </div>
   );
 }

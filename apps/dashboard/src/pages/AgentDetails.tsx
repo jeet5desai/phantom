@@ -1,20 +1,19 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useRequest } from '@/hooks/useRequest';
-import { Link, useParams } from 'react-router-dom';
 import {
-  ArrowLeft,
-  Cpu,
-  Activity,
-  ShieldCheck,
-  Settings,
-  RefreshCw,
+  ChevronLeft,
+  Bot,
   ExternalLink,
-  Lock,
-  Plus,
-  Trash2,
+  Pause,
+  Play,
+  AlertTriangle,
+  Settings,
+  Cpu,
   Clock,
-  CheckCircle2,
-  AlertCircle,
+  Shield,
+  Calendar,
+  Trash2,
 } from 'lucide-react';
 import ConfirmDialog from '@/components/ui/ConfirmDialog';
 
@@ -22,343 +21,275 @@ interface Agent {
   id: string;
   name: string;
   model: string;
-  version?: string;
+  status: 'ACTIVE' | 'PAUSED' | 'REVOKED';
   createdAt: string;
   revokedAt?: string | null;
-}
-
-interface Permission {
-  id: string;
-  resource: string;
-  action: string;
-}
-
-interface TimelineEntry {
-  event: string;
-  time: string;
-  type: string;
-  status: 'success' | 'failure';
+  metadata?: Record<string, string>;
 }
 
 export default function AgentDetails() {
-  const request = useRequest();
   const { id } = useParams<{ id: string }>();
-
-  const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
+  const request = useRequest();
   const [agent, setAgent] = useState<Agent | null>(null);
-  const [permissions, setPermissions] = useState<Permission[]>([]);
-  const [timeline, setTimeline] = useState<TimelineEntry[]>([]);
-  const [revoking, setRevoking] = useState(false);
-  const [showConfirm, setShowConfirm] = useState(false);
+  const [loading, setLoading] = useState(true);
 
-  const formatTime = (date: Date) => {
-    const seconds = Math.floor((new Date().getTime() - new Date(date).getTime()) / 1000);
-    if (seconds < 60) return 'just now';
-    const minutes = Math.floor(seconds / 60);
-    if (minutes < 60) return `${minutes}m ago`;
-    const hours = Math.floor(minutes / 60);
-    if (hours < 24) return `${hours}h ago`;
-    return date.toLocaleDateString();
-  };
-
-  const loadData = useCallback(async () => {
-    // We only set loading if it's not already true (e.g. on manual refresh)
-    setLoading(true);
-    const [agentRes, permRes, auditRes] = await Promise.all([
-      request('GET', `/api/v1/agents/${id}`),
-      request('GET', `/api/v1/agents/${id}/permissions`),
-      request('GET', `/api/v1/audit?agentId=${id}&limit=5`),
-    ]);
-
-    if (agentRes?.agent) setAgent(agentRes.agent);
-    if (permRes?.permissions) setPermissions(permRes.permissions);
-    if (auditRes?.entries) {
-      setTimeline(
-        auditRes.entries.map(
-          (log: { action: string; createdAt: string; resource?: string; result: string }) => ({
-            event: log.action,
-            time: formatTime(new Date(log.createdAt)),
-            type: log.resource || 'system',
-            status: log.result === 'allowed' || log.result === 'success' ? 'success' : 'failure',
-          }),
-        ),
-      );
-    }
-    setLoading(false);
-  }, [id, request]);
+  const [confirmRevoke, setConfirmRevoke] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   useEffect(() => {
-    let isMounted = true;
-
-    const fetch = async () => {
-      // Small delay to ensure we're out of the synchronous render path
-      await Promise.resolve();
-      if (isMounted) {
-        await loadData();
-      }
+    let mounted = true;
+    const load = async () => {
+      if (!id) return;
+      setLoading(true);
+      const data = await request('GET', `/api/v1/agents/${id}`);
+      if (mounted && data?.agent) setAgent(data.agent);
+      if (mounted) setLoading(false);
     };
-
-    fetch();
-
+    load();
     return () => {
-      isMounted = false;
+      mounted = false;
     };
-  }, [loadData]);
+  }, [id, request]);
+
+  const handlePause = async () => {
+    const result = await request('POST', `/api/v1/agents/${id}/pause`);
+    if (result?.agent) setAgent(result.agent);
+  };
+
+  const handleResume = async () => {
+    const result = await request('POST', `/api/v1/agents/${id}/resume`);
+    if (result?.agent) setAgent(result.agent);
+  };
 
   const handleRevoke = async () => {
-    setRevoking(true);
     const result = await request('POST', `/api/v1/agents/${id}/revoke`);
     if (result?.agent) {
+      setConfirmRevoke(false);
       setAgent(result.agent);
     }
-    setRevoking(false);
+  };
+
+  const handleDelete = async () => {
+    const result = await request('DELETE', `/api/v1/agents/${id}`);
+    if (result?.success) {
+      navigate('/agents');
+    }
   };
 
   if (loading) {
     return (
-      <div className="flex p-16 justify-center items-center">
-        <RefreshCw size={32} className="animate-spin text-accent-primary" />
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-accent-primary"></div>
       </div>
     );
   }
 
   if (!agent) {
     return (
-      <div className="flex flex-col p-16 justify-center items-center gap-4">
-        <AlertCircle size={48} className="text-text-tertiary" />
-        <h2 className="text-2xl font-bold text-text-secondary">Agent not found</h2>
-        <Link to="/agents" className="text-accent-primary hover:underline">
-          Return to Agents
+      <div className="flex flex-col items-center justify-center min-h-[400px] gap-4">
+        <p className="text-text-secondary">Agent not found or access denied.</p>
+        <Link to="/agents" className="btn-outline">
+          Back to Agents
         </Link>
       </div>
     );
   }
 
-  const isRevoked = !!agent.revokedAt;
-  const status = isRevoked ? 'Revoked' : 'Active';
-  const createdDate = new Date(agent.createdAt).toLocaleDateString();
-
   return (
-    <div className="flex flex-col gap-lg fade-in">
-      <div className="flex items-center gap-4 mb-2">
+    <div className="flex flex-col gap-lg max-w-5xl mx-auto py-8 px-6 fade-in">
+      {/* Header */}
+      <div className="flex flex-col gap-4">
         <Link
           to="/agents"
-          className="p-2 border border-border rounded-md text-text-tertiary hover:bg-surface-hover hover:text-text-primary transition-all"
+          className="flex items-center gap-2 text-sm text-text-tertiary hover:text-text-primary transition-colors w-fit"
         >
-          <ArrowLeft size={20} />
+          <ChevronLeft size={16} />
+          Back to Agents
         </Link>
-        <div className="flex flex-col">
-          <div className="flex items-center gap-3">
-            <h1 className="text-4xl font-display font-bold">{agent.name}</h1>
-            <div
-              className={`flex items-center gap-2 px-3 py-1 border rounded-full ${
-                isRevoked ? 'bg-error-bg border-error/20' : 'bg-success-bg border-success/20'
-              }`}
-            >
-              {!isRevoked && (
-                <span className="w-2 h-2 bg-success rounded-full animate-pulse"></span>
-              )}
-              <span
-                className={`text-[10px] font-bold uppercase tracking-wider ${
-                  isRevoked ? 'text-error' : 'text-success'
-                }`}
-              >
-                {status}
-              </span>
+
+        <div className="flex justify-between items-start">
+          <div className="flex gap-4 items-center">
+            <div className="w-16 h-16 bg-accent-light rounded-2xl flex items-center justify-center">
+              <Bot size={32} className="text-accent-primary" />
+            </div>
+            <div>
+              <h1 className="text-3xl font-bold text-text-primary tracking-tight">{agent.name}</h1>
+              <p className="text-sm font-mono text-text-tertiary mt-1">{agent.id}</p>
             </div>
           </div>
-          <span className="text-sm font-mono text-text-tertiary tracking-tight">{agent.id}</span>
+
+          <div className="flex items-center gap-2 px-4 py-2 bg-background border border-border rounded-full shadow-sm">
+            <span
+              className={`w-2.5 h-2.5 rounded-full ${
+                agent.status === 'ACTIVE'
+                  ? 'bg-success animate-pulse'
+                  : agent.status === 'PAUSED'
+                    ? 'bg-warning'
+                    : 'bg-error'
+              }`}
+            ></span>
+            <span className="text-xs font-bold uppercase tracking-widest text-text-secondary">
+              {agent.status}
+            </span>
+          </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-lg">
-        {/* Main Stats and Overview */}
-        <div className="xl:col-span-2 flex flex-col gap-lg">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-md">
-            <div className="glass p-lg flex flex-col gap-2">
-              <span className="label">Total Permissions</span>
-              <span className="text-3xl font-display font-bold">{permissions.length}</span>
-            </div>
-            <div className="glass p-lg flex flex-col gap-2">
-              <span className="label">Recent Actions</span>
-              <span className="text-3xl font-display font-bold">{timeline.length}</span>
-            </div>
-            <div className="glass p-lg flex flex-col gap-2">
-              <span className="label">Status</span>
-              <span
-                className={`text-3xl font-display font-bold ${isRevoked ? 'text-error' : 'text-success'}`}
-              >
-                {isRevoked ? 'Inactive' : 'Healthy'}
-              </span>
-            </div>
-          </div>
-
-          <div className="glass flex flex-col">
-            <div className="px-lg py-5 border-b border-border flex items-center justify-between bg-surface">
-              <div className="flex items-center gap-3">
-                <ShieldCheck size={20} className="text-text-secondary" />
-                <h3 className="text-xl font-display font-bold">Permissions</h3>
-              </div>
-              <button className="flex items-center gap-2 px-3 py-1.5 bg-background border border-border rounded-md text-xs font-bold text-text-secondary hover:bg-surface-hover transition-colors">
-                <Plus size={14} />
-                Edit Access
-              </button>
-            </div>
-            <div className="p-lg">
-              {permissions.length === 0 ? (
-                <p className="text-sm text-text-tertiary italic">No permissions granted yet.</p>
-              ) : (
-                <div className="flex flex-col gap-3">
-                  {permissions.map((perm) => (
-                    <div
-                      key={perm.id}
-                      className="flex items-center justify-between p-4 bg-background border border-border rounded-xl"
-                    >
-                      <div className="flex items-center gap-4">
-                        <div className="w-8 h-8 bg-surface border border-border rounded flex items-center justify-center">
-                          <Lock size={16} className="text-text-tertiary" />
-                        </div>
-                        <div className="flex flex-col">
-                          <span className="font-bold text-sm">{perm.resource}</span>
-                          <span className="text-[10px] text-text-tertiary uppercase tracking-wider font-bold">
-                            {perm.action}
-                          </span>
-                        </div>
-                      </div>
-                      <div
-                        className={`flex items-center gap-2 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-success-bg text-success`}
-                      >
-                        <CheckCircle2 size={12} />
-                        <span>Granted</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-
-          <div className="glass flex flex-col">
-            <div className="px-lg py-5 border-b border-border flex items-center justify-between bg-surface">
-              <div className="flex items-center gap-3">
-                <Activity size={20} className="text-text-secondary" />
-                <h3 className="text-xl font-display font-bold">Activity Timeline</h3>
-              </div>
-              <Link
-                to="/audit-logs"
-                className="text-xs font-bold text-accent-primary hover:underline flex items-center gap-1"
-              >
-                View all logs <ExternalLink size={12} />
-              </Link>
-            </div>
-            <div className="p-lg flex flex-col gap-6">
-              {timeline.length === 0 ? (
-                <p className="text-sm text-text-tertiary italic">No recent activity found.</p>
-              ) : (
-                timeline.map((item, i) => (
-                  <div key={i} className="flex gap-4 relative">
-                    {i !== timeline.length - 1 && (
-                      <div className="absolute left-3 top-8 bottom-[-24px] w-[2px] bg-border"></div>
-                    )}
-                    <div
-                      className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 z-10 ${
-                        item.status === 'success'
-                          ? 'bg-success-bg text-success'
-                          : 'bg-error-bg text-error'
-                      }`}
-                    >
-                      {item.status === 'success' ? (
-                        <CheckCircle2 size={14} />
-                      ) : (
-                        <AlertCircle size={14} />
-                      )}
-                    </div>
-                    <div className="flex flex-col gap-1">
-                      <span className="text-sm font-bold text-text-primary">{item.event}</span>
-                      <div className="flex items-center gap-3 text-[11px] text-text-tertiary font-medium">
-                        <span className="flex items-center gap-1">
-                          <Clock size={10} /> {item.time}
-                        </span>
-                        <span className="uppercase tracking-widest">{item.type}</span>
-                      </div>
-                    </div>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {/* Main Content */}
+        <div className="lg:col-span-2 flex flex-col gap-8">
+          {/* Quick Actions */}
+          <div className="glass p-8">
+            <h3 className="text-lg font-bold text-text-primary mb-6 flex items-center gap-2">
+              <Settings size={20} className="text-accent-primary" />
+              Management Actions
+            </h3>
+            <div className="flex items-center justify-between gap-3">
+              {agent.status === 'ACTIVE' && (
+                <button
+                  onClick={handlePause}
+                  className="w-full flex items-center gap-3 p-3 bg-warning/5 border border-warning/20 rounded-lg hover:bg-warning/10 transition-all group"
+                >
+                  <div className="w-8 h-8 rounded-full bg-warning/10 flex items-center justify-center text-warning group-hover:scale-110 transition-transform">
+                    <Pause size={16} />
                   </div>
-                ))
+                  <span className="text-xs font-bold text-warning">Stop</span>
+                </button>
+              )}
+
+              {agent.status === 'PAUSED' && (
+                <button
+                  onClick={handleResume}
+                  className="w-full flex items-center gap-3 p-3 bg-success/5 border border-success/20 rounded-lg hover:bg-success/10 transition-all group"
+                >
+                  <div className="w-8 h-8 rounded-full bg-success/10 flex items-center justify-center text-success group-hover:scale-110 transition-transform">
+                    <Play size={16} />
+                  </div>
+                  <span className="text-xs font-bold text-success">Start</span>
+                </button>
+              )}
+
+              <button className="w-full flex items-center gap-3 p-3 bg-surface-hover border border-border rounded-lg hover:bg-background transition-all group">
+                <div className="w-8 h-8 rounded-full bg-accent-light flex items-center justify-center text-accent-primary group-hover:scale-110 transition-transform">
+                  <ExternalLink size={16} />
+                </div>
+                <span className="text-xs font-bold text-text-primary">Logs</span>
+              </button>
+
+              {agent.status !== 'REVOKED' && (
+                <button
+                  onClick={() => setConfirmRevoke(true)}
+                  className="w-full flex items-center gap-3 p-3 bg-error/5 border border-error/20 rounded-lg hover:bg-error/10 transition-all group"
+                >
+                  <div className="w-8 h-8 rounded-full bg-error/10 flex items-center justify-center text-error group-hover:scale-110 transition-transform">
+                    <AlertTriangle size={16} />
+                  </div>
+                  <span className="text-xs font-bold text-error">Revoke</span>
+                </button>
               )}
             </div>
+          </div>
+
+          {/* Metadata Section */}
+          <div className="glass p-8">
+            <h3 className="text-lg font-bold text-text-primary mb-6 flex items-center gap-2">
+              <Shield size={20} className="text-accent-primary" />
+              Agent Metadata & Tags
+            </h3>
+            {agent.metadata && Object.keys(agent.metadata).length > 0 ? (
+              <div className="grid grid-cols-2 gap-4">
+                {Object.entries(agent.metadata).map(([key, value]) => (
+                  <div key={key} className="p-4 bg-background border border-border rounded-lg">
+                    <span className="block text-[10px] uppercase tracking-wider text-text-tertiary font-bold mb-1">
+                      {key}
+                    </span>
+                    <span className="text-sm font-medium text-text-primary">{value}</span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center py-8 text-center bg-background rounded-xl border border-dashed border-border">
+                <p className="text-sm text-text-tertiary italic">
+                  No metadata configured for this agent.
+                </p>
+              </div>
+            )}
           </div>
         </div>
 
-        {/* Sidebar Settings & Config */}
+        {/* Sidebar Info */}
         <div className="flex flex-col gap-lg">
-          <div className="glass p-lg flex flex-col gap-6">
-            <h3 className="text-lg font-display font-bold border-b border-border pb-4">
+          <div className="glass p-6">
+            <h4 className="text-xs font-bold uppercase tracking-widest text-text-tertiary mb-4">
               Agent Configuration
-            </h3>
+            </h4>
             <div className="flex flex-col gap-4">
-              <div className="flex flex-col gap-1.5">
-                <label className="label">Base Model</label>
-                <div className="flex items-center gap-3 p-3 bg-background border border-border rounded-lg">
-                  <Cpu size={18} className="text-accent-primary" />
-                  <span className="font-bold text-sm">{agent.model || 'Unknown'}</span>
+              <div className="flex items-center gap-3">
+                <Cpu size={18} className="text-text-tertiary" />
+                <div>
+                  <p className="text-[11px] text-text-tertiary leading-none">Model</p>
+                  <p className="text-sm font-bold text-text-primary">{agent.model}</p>
                 </div>
               </div>
-              <div className="flex flex-col gap-1.5">
-                <label className="label">Version</label>
-                <span className="text-sm font-bold text-text-secondary">
-                  {agent.version || '1.0.0'}
-                </span>
+              <div className="flex items-center gap-3">
+                <Calendar size={18} className="text-text-tertiary" />
+                <div>
+                  <p className="text-[11px] text-text-tertiary leading-none">Created</p>
+                  <p className="text-sm font-bold text-text-primary">
+                    {new Date(agent.createdAt).toLocaleDateString()}
+                  </p>
+                </div>
               </div>
-              <div className="flex flex-col gap-1.5">
-                <label className="label">Creation Date</label>
-                <span className="text-sm font-bold text-text-secondary">{createdDate}</span>
+              <div className="flex items-center gap-3">
+                <Clock size={18} className="text-text-tertiary" />
+                <div>
+                  <p className="text-[11px] text-text-tertiary leading-none">Uptime State</p>
+                  <p className="text-sm font-bold text-text-primary">
+                    {agent.status === 'ACTIVE' ? 'Running' : 'Offline'}
+                  </p>
+                </div>
               </div>
-            </div>
-            <div className="flex flex-col gap-3 pt-4">
-              <button
-                className="btn-outline flex items-center justify-center gap-2 py-3"
-                disabled={isRevoked}
-              >
-                <RefreshCw size={16} />
-                Rotate Credentials
-              </button>
-              <button className="btn-outline flex items-center justify-center gap-2 py-3">
-                <Settings size={16} />
-                Advanced Settings
-              </button>
             </div>
           </div>
 
-          {!isRevoked && (
-            <div className="glass p-lg flex flex-col gap-4 border-error/20 bg-error-bg/30">
-              <div className="flex items-center gap-3 text-error">
-                <Trash2 size={20} />
-                <h3 className="font-display font-bold">Danger Zone</h3>
-              </div>
-              <p className="text-xs text-text-secondary leading-relaxed">
-                Once an agent is revoked, all its associated sessions will be terminated. This
-                action cannot be undone.
-              </p>
-              <button
-                id="revoke-agent-button"
-                onClick={() => setShowConfirm(true)}
-                disabled={revoking}
-                className="w-full py-3 bg-error text-white rounded-md font-bold text-sm hover:bg-error/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {revoking ? 'Revoking...' : 'Revoke Agent'}
-              </button>
-            </div>
-          )}
+          <div className="glass p-6 border-error/20 bg-error/5">
+            <h4 className="text-xs font-bold uppercase tracking-widest text-error/60 mb-4">
+              Danger Zone
+            </h4>
+            <p className="text-[11px] text-text-tertiary mb-4 leading-relaxed">
+              Deleting an agent is permanent and will wipe all associated governance logs. This
+              cannot be undone.
+            </p>
+            <button
+              onClick={() => setConfirmDelete(true)}
+              className="w-full flex items-center justify-center gap-2 py-2 border border-error/30 rounded-md text-xs font-bold text-error hover:bg-error-bg transition-all"
+            >
+              <Trash2 size={14} />
+              Delete Permanently
+            </button>
+          </div>
         </div>
       </div>
 
       <ConfirmDialog
-        isOpen={showConfirm}
-        onClose={() => setShowConfirm(false)}
+        isOpen={confirmRevoke}
+        onClose={() => setConfirmRevoke(false)}
         onConfirm={handleRevoke}
         title="Revoke Agent"
-        description="Are you sure you want to revoke this agent? All associated sessions will be terminated. This action cannot be undone."
+        description="Are you sure you want to revoke this agent? It will immediately lose all access and cannot be reactivated."
         confirmText="Revoke Agent"
+        variant="danger"
+      />
+
+      <ConfirmDialog
+        isOpen={confirmDelete}
+        onClose={() => setConfirmDelete(false)}
+        onConfirm={handleDelete}
+        title="Delete Agent Permanently"
+        description="This action is irreversible. All agent history and identities will be destroyed."
+        confirmText="Delete Permanently"
+        variant="danger"
       />
     </div>
   );

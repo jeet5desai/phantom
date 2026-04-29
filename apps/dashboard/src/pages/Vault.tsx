@@ -60,10 +60,13 @@ export default function Vault() {
   const [credentials, setCredentials] = useState<Credential[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [showRotateModal, setShowRotateModal] = useState(false);
+  const [rotatingCredential, setRotatingCredential] = useState<Credential | null>(null);
 
   const [formName, setFormName] = useState('');
   const [formService, setFormService] = useState('');
   const [formSecret, setFormSecret] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
 
   const [confirmDelete, setConfirmDelete] = useState<{
     isOpen: boolean;
@@ -137,6 +140,24 @@ export default function Vault() {
     }
   };
 
+  const handleRotate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!rotatingCredential || !formSecret.trim()) return;
+
+    setSubmitting(true);
+    const result = await request('PUT', `/api/v1/credentials/${rotatingCredential.id}/rotate`, {
+      apiKey: formSecret.trim(),
+    });
+
+    if (result?.credential) {
+      setShowRotateModal(false);
+      setRotatingCredential(null);
+      setFormSecret('');
+      fetchCredentials();
+    }
+    setSubmitting(false);
+  };
+
   const formatTime = (dateStr: string) => {
     const date = new Date(dateStr);
     const now = new Date().getTime();
@@ -151,7 +172,21 @@ export default function Vault() {
   };
 
   const activeCount = credentials.length;
-  const rotatedCount = credentials.filter((c) => c.rotatedAt).length;
+  const recentlyRotatedCount = credentials.filter((c) => {
+    if (!c.rotatedAt) return false;
+    const rotatedDate = new Date(c.rotatedAt).getTime();
+    const sevenDaysAgo = new Date().getTime() - 7 * 24 * 60 * 60 * 1000;
+    return rotatedDate > sevenDaysAgo;
+  }).length;
+
+  const filteredCredentials = credentials.filter((cred) => {
+    const search = searchQuery.toLowerCase();
+    return (
+      cred.service.toLowerCase().includes(search) ||
+      (cred.label && cred.label.toLowerCase().includes(search)) ||
+      cred.id.toLowerCase().includes(search)
+    );
+  });
 
   return (
     <div className="flex flex-col gap-lg fade-in">
@@ -195,7 +230,7 @@ export default function Vault() {
         </div>
         <div className="glass p-lg flex flex-col gap-2">
           <span className="label">Recently Rotated</span>
-          <span className="text-3xl font-display font-bold text-warning">{rotatedCount}</span>
+          <span className="text-3xl font-display font-bold text-warning">{recentlyRotatedCount}</span>
         </div>
         <div className="glass p-lg flex flex-col gap-2">
           <span className="label">Security Score</span>
@@ -220,6 +255,8 @@ export default function Vault() {
               <input
                 type="text"
                 placeholder="Search secrets..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
                 className="bg-transparent border-none outline-none text-sm text-text-primary w-64 placeholder:text-text-tertiary"
               />
             </div>
@@ -230,12 +267,23 @@ export default function Vault() {
           <div className="p-lg flex justify-center">
             <RefreshCw size={24} className="animate-spin text-accent-primary" />
           </div>
-        ) : credentials.length === 0 ? (
-          <div className="p-lg flex flex-col items-center gap-4 py-16">
-            <Lock size={48} className="text-text-tertiary" />
-            <p className="text-text-secondary text-sm">
-              No credentials stored yet. Add your first secret to get started.
-            </p>
+        ) : filteredCredentials.length === 0 ? (
+          <div className="p-lg flex flex-col items-center gap-4 py-16 text-center">
+            <Search size={48} className="text-text-tertiary opacity-20" />
+            <div>
+              <p className="text-text-primary font-bold">No secrets found</p>
+              <p className="text-text-secondary text-sm">
+                {searchQuery ? `No results for "${searchQuery}"` : 'Add your first secret to get started.'}
+              </p>
+            </div>
+            {searchQuery && (
+              <button 
+                onClick={() => setSearchQuery('')}
+                className="text-accent-primary text-sm font-bold hover:underline"
+              >
+                Clear search
+              </button>
+            )}
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -251,7 +299,7 @@ export default function Vault() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
-                {credentials.map((cred) => {
+                {filteredCredentials.map((cred) => {
                   const SecretIcon = getServiceIcon(cred.service);
                   return (
                     <tr key={cred.id} className="group hover:bg-background transition-colors">
@@ -292,8 +340,13 @@ export default function Vault() {
                       <td className="px-lg py-5 text-right">
                         <div className="flex justify-end gap-2">
                           <button
+                            onClick={() => {
+                              setRotatingCredential(cred);
+                              setFormSecret('');
+                              setShowRotateModal(true);
+                            }}
                             className="p-2 border border-border rounded-md text-text-tertiary hover:bg-surface-hover hover:text-accent-primary transition-all"
-                            title="Refresh"
+                            title="Rotate Secret"
                           >
                             <RefreshCw size={16} />
                           </button>
@@ -398,6 +451,72 @@ export default function Vault() {
               </button>
               <button type="submit" className="btn-primary px-8 " disabled={submitting}>
                 {submitting ? 'Vaulting...' : 'Vault Secret'}
+              </button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Rotate Secret Dialog */}
+      <Dialog isOpen={showRotateModal} onClose={() => setShowRotateModal(false)}>
+        <DialogContent>
+          <DialogClose onClick={() => setShowRotateModal(false)} />
+          <DialogHeader>
+            <div className="w-12 h-12 bg-warning-bg rounded-xl flex items-center justify-center mb-2">
+              <RefreshCw size={28} className="text-warning" />
+            </div>
+            <DialogTitle>Rotate Secret</DialogTitle>
+            <DialogDescription>
+              Update the API key for <strong>{rotatingCredential?.label || rotatingCredential?.service}</strong>. 
+              The old key will be replaced instantly.
+            </DialogDescription>
+          </DialogHeader>
+
+          <form className="flex flex-col gap-6" onSubmit={handleRotate}>
+            <div className="flex flex-col gap-2">
+              <label className="label">New Secret Value</label>
+              <div className="relative flex items-center group">
+                <input
+                  type={showSecret ? 'text' : 'password'}
+                  placeholder="Enter new secret value..."
+                  value={formSecret}
+                  onChange={(e) => setFormSecret(e.target.value)}
+                  className="w-full px-4 py-3 bg-background border border-border rounded-md outline-none focus:border-accent-primary transition-colors text-sm font-medium pr-12"
+                  required
+                />
+                <button
+                  type="button"
+                  className="absolute right-4 text-text-tertiary hover:text-text-primary transition-colors"
+                  onClick={() => setShowSecret(!showSecret)}
+                >
+                  {showSecret ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              </div>
+            </div>
+
+            <div className="p-4 bg-warning-bg rounded-xl flex gap-4 items-start border border-warning/20">
+              <AlertCircle size={20} className="text-warning shrink-0 mt-0.5" />
+              <div className="flex flex-col gap-1">
+                <span className="text-sm font-bold text-warning">
+                  Security Precaution
+                </span>
+                <p className="text-xs text-text-secondary leading-relaxed">
+                  Rotating a secret will update it in the vault. Any agents using tokens issued 
+                  with the old key will continue to work until their tokens expire (typically 5 minutes).
+                </p>
+              </div>
+            </div>
+
+            <DialogFooter>
+              <button
+                type="button"
+                className="px-6 py-3 font-bold text-text-secondary hover:bg-surface-hover rounded-md transition-colors"
+                onClick={() => setShowRotateModal(false)}
+              >
+                Cancel
+              </button>
+              <button type="submit" className="btn-primary px-8 bg-warning hover:bg-warning/90 border-warning" disabled={submitting}>
+                {submitting ? 'Updating...' : 'Rotate Secret'}
               </button>
             </DialogFooter>
           </form>

@@ -1,11 +1,12 @@
 import { useState } from 'react';
 import { useSignUp, useClerk } from '@clerk/clerk-react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Loader2 } from 'lucide-react';
 
 export default function SignUpForm() {
   const { signUp } = useSignUp();
   const { setActive } = useClerk();
+  const navigate = useNavigate();
   const signUpLoaded = !!signUp;
 
   const [name, setName] = useState('');
@@ -92,8 +93,10 @@ export default function SignUpForm() {
       });
 
       if (verifyResult.status === 'complete') {
-        await setActive({ session: verifyResult.createdSessionId });
-        window.location.href = '/';
+        await setActive({
+          session: verifyResult.createdSessionId,
+          beforeEmit: () => navigate('/'),
+        });
       } else {
         setError('Verification failed.');
         setIsVerifyLoading(false);

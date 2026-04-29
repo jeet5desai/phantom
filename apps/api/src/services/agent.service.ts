@@ -1,20 +1,6 @@
 import prisma from '../db/prisma.js';
 import { generateId, generateAgentKeyPair } from '../lib/crypto.js';
-import type { Prisma } from '@prisma/client';
-
-export interface Agent {
-  id: string;
-  userId: string;
-  name: string;
-  model: string | null;
-  version: string | null;
-  publicKey: string | null;
-  metadata: Prisma.JsonValue;
-  createdBy: string | null;
-  createdAt: Date;
-  revokedAt: Date | null;
-  parentAgentId: string | null;
-}
+import type { Prisma, Agent } from '@prisma/client';
 
 export interface CreateAgentInput {
   userId: string;
@@ -84,6 +70,7 @@ export async function revokeAgent(userId: string, agentId: string): Promise<Agen
       },
       data: {
         revokedAt: new Date(),
+        status: 'REVOKED',
       },
     })
     .catch(() => null);
@@ -94,8 +81,56 @@ export async function isAgentActive(agentId: string): Promise<boolean> {
   const count = await prisma.agent.count({
     where: {
       id: agentId,
+      status: 'ACTIVE',
       revokedAt: null,
     },
   });
   return count > 0;
+}
+
+/** Pause an agent — sets status to PAUSED. */
+export async function pauseAgent(userId: string, agentId: string): Promise<Agent | null> {
+  return prisma.agent
+    .update({
+      where: {
+        id: agentId,
+        userId,
+        status: 'ACTIVE',
+      },
+      data: {
+        status: 'PAUSED',
+      },
+    })
+    .catch(() => null);
+}
+
+/** Resume a paused agent — sets status to ACTIVE. */
+export async function resumeAgent(userId: string, agentId: string): Promise<Agent | null> {
+  return prisma.agent
+    .update({
+      where: {
+        id: agentId,
+        userId,
+        status: 'PAUSED',
+      },
+      data: {
+        status: 'ACTIVE',
+      },
+    })
+    .catch(() => null);
+}
+
+/** Permanently delete an agent and its associations. */
+export async function deleteAgent(userId: string, agentId: string): Promise<boolean> {
+  try {
+    await prisma.agent.delete({
+      where: {
+        id: agentId,
+        userId,
+      },
+    });
+    return true;
+  } catch {
+    return false;
+  }
 }

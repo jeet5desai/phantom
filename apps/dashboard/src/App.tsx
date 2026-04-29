@@ -14,6 +14,7 @@ import SignInPage from './pages/SignIn';
 import SignUpPage from './pages/SignUp';
 import Notifications from './pages/Notifications';
 import Resources from './pages/Resources';
+import DocViewer from './pages/DocViewer';
 import Vault from './pages/Vault';
 import Permissions from './pages/Permissions';
 import Integrations from './pages/Integrations';
@@ -43,6 +44,7 @@ export default function App() {
             <Route path="/sign-up/*" element={<SignUpPage />} />
             <Route path="/notifications" element={<Notifications />} />
             <Route path="/resources" element={<Resources />} />
+            <Route path="/resources/:slug" element={<DocViewer />} />
             <Route path="/vault" element={<Vault />} />
             <Route path="/permissions" element={<Permissions />} />
             <Route path="/integrations" element={<Integrations />} />

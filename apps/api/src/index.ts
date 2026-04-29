@@ -10,6 +10,7 @@ import { registerAuditRoutes } from './routes/audit.routes.js';
 import { registerIntegrationRoutes } from './routes/integration.routes.js';
 import { registerDashboardRoutes } from './routes/dashboard.routes.js';
 import { registerApiKeyRoutes } from './routes/apikey.routes.js';
+import { registerUserRoutes } from './routes/user.routes.js';
 
 const app = Fastify({
   logger: config.env !== 'test',
@@ -67,6 +68,7 @@ registerAuditRoutes(app);
 registerIntegrationRoutes(app);
 registerDashboardRoutes(app);
 registerApiKeyRoutes(app);
+registerUserRoutes(app);
 
 // ─── Start ──────────────────────────────────────────────────────────────────
 

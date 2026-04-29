@@ -27,6 +27,10 @@ export default tseslint.config(
       // Since we migrated from Next.js to Vite, we use standard <img> tags.
       // We explicitly disable the Next.js image rule if it was inherited.
       '@next/next/no-img-element': 'off',
+      '@typescript-eslint/no-unused-vars': [
+        'warn',
+        { argsIgnorePattern: '^_', varsIgnorePattern: '^_' },
+      ],
     },
   },
 );

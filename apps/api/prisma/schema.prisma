@@ -3,30 +3,47 @@ generator client {
   previewFeatures = ["driverAdapters"]
 }
 
-
 datasource db {
   provider = "postgresql"
 }
 
+model User {
+  id        String   @id
+  email     String   @unique
+  firstName String?  @map("first_name")
+  lastName  String?  @map("last_name")
+  imageUrl  String?  @map("image_url")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@map("users")
+}
+
+enum AgentStatus {
+  ACTIVE
+  PAUSED
+  REVOKED
+}
 
 model Agent {
-  id            String    @id
-  userId        String    @map("user_id")
+  id            String      @id
+  userId        String      @map("user_id")
   name          String
   model         String?
-  version       String?   @default("1.0.0")
-  publicKey     String?   @map("public_key")
-  metadata      Json?     @default("{}")
-  createdBy     String?   @map("created_by")
-  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
-  revokedAt     DateTime? @map("revoked_at") @db.Timestamptz(6)
-  parentAgentId String?   @map("parent_agent_id")
+  version       String?     @default("1.0.0")
+  status        AgentStatus @default(ACTIVE)
+  publicKey     String?     @map("public_key")
+  metadata      Json?       @default("{}")
+  createdBy     String?     @map("created_by")
+  createdAt     DateTime    @default(now()) @map("created_at") @db.Timestamptz(6)
+  revokedAt     DateTime?   @map("revoked_at") @db.Timestamptz(6)
+  parentAgentId String?     @map("parent_agent_id")
 
-  parentAgent   Agent?       @relation("AgentToAgent", fields: [parentAgentId], references: [id])
-  childAgents   Agent[]      @relation("AgentToAgent")
+  parentAgent Agent?  @relation("AgentToAgent", fields: [parentAgentId], references: [id])
+  childAgents Agent[] @relation("AgentToAgent")
 
-  permissions   Permission[]
-  tokens        Token[]
+  permissions Permission[]
+  tokens      Token[]
 
   @@index([userId], map: "idx_agents_user")
   @@index([parentAgentId], map: "idx_agents_parent")
@@ -43,7 +60,7 @@ model Credential {
   createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
   rotatedAt    DateTime? @map("rotated_at") @db.Timestamptz(6)
 
-  tokens       Token[]
+  tokens Token[]
 
   @@index([userId], map: "idx_credentials_user")
   @@map("credentials")
@@ -57,7 +74,7 @@ model Permission {
   requiresApproval Boolean? @default(false) @map("requires_approval")
   createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
 
-  agent            Agent    @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  agent Agent @relation(fields: [agentId], references: [id], onDelete: Cascade)
 
   @@unique([agentId, resource, action])
   @@index([agentId], map: "idx_permissions_agent")
@@ -65,30 +82,30 @@ model Permission {
 }
 
 model Token {
-  id           String      @id
-  agentId      String      @map("agent_id")
-  credentialId String?     @map("credential_id")
-  scopes       Json        @default("[]")
-  expiresAt    DateTime    @map("expires_at") @db.Timestamptz(6)
-  revoked      Boolean?    @default(false)
-  createdAt    DateTime    @default(now()) @map("created_at") @db.Timestamptz(6)
+  id           String   @id
+  agentId      String   @map("agent_id")
+  credentialId String?  @map("credential_id")
+  scopes       Json     @default("[]")
+  expiresAt    DateTime @map("expires_at") @db.Timestamptz(6)
+  revoked      Boolean? @default(false)
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
 
-  agent        Agent       @relation(fields: [agentId], references: [id], onDelete: Cascade)
-  credential   Credential? @relation(fields: [credentialId], references: [id])
+  agent      Agent       @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  credential Credential? @relation(fields: [credentialId], references: [id])
 
   @@index([agentId], map: "idx_tokens_agent")
   @@map("tokens")
 }
 
 model ApiKey {
-  id          String    @id
-  userId      String    @map("user_id")
-  name        String
-  keyPrefix   String    @map("key_prefix")
-  keyHash     String    @unique @map("key_hash")
-  lastUsedAt  DateTime? @map("last_used_at") @db.Timestamptz(6)
-  revokedAt   DateTime? @map("revoked_at") @db.Timestamptz(6)
-  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  id         String    @id
+  userId     String    @map("user_id")
+  name       String
+  keyPrefix  String    @map("key_prefix")
+  keyHash    String    @unique @map("key_hash")
+  lastUsedAt DateTime? @map("last_used_at") @db.Timestamptz(6)
+  revokedAt  DateTime? @map("revoked_at") @db.Timestamptz(6)
+  createdAt  DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
 
   @@index([userId], map: "idx_api_keys_user")
   @@index([keyHash], map: "idx_api_keys_hash")
@@ -96,19 +113,19 @@ model ApiKey {
 }
 
 model AuditLog {
-  id           BigInt    @id @default(autoincrement())
-  userId       String    @map("user_id")
-  agentId      String    @map("agent_id")
-  credentialId String?   @map("credential_id")
-  tokenId      String?   @map("token_id")
+  id           BigInt   @id @default(autoincrement())
+  userId       String   @map("user_id")
+  agentId      String   @map("agent_id")
+  credentialId String?  @map("credential_id")
+  tokenId      String?  @map("token_id")
   action       String
   resource     String?
   result       String
   reasoning    String?
-  metadata     Json?     @default("{}")
+  metadata     Json?    @default("{}")
   hash         String
-  prevHash     String?   @map("prev_hash")
-  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  prevHash     String?  @map("prev_hash")
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
 
   @@index([userId, agentId], map: "idx_audit_user_agent")
   @@index([createdAt], map: "idx_audit_created")

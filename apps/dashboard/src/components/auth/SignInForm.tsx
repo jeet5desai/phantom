@@ -1,11 +1,12 @@
 import { useState } from 'react';
 import { useSignIn, useClerk } from '@clerk/clerk-react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Loader2 } from 'lucide-react';
 
 export default function SignInForm() {
   const { signIn } = useSignIn();
-  const { setActive } = useClerk();
+  const { setActive, client } = useClerk();
+  const navigate = useNavigate();
 
   const signInLoaded = !!signIn;
 
@@ -54,18 +55,35 @@ export default function SignInForm() {
       });
 
       if (result.status === 'complete') {
-        await setActive({ session: result.createdSessionId });
-        window.location.href = '/';
+        await setActive({
+          session: result.createdSessionId,
+          beforeEmit: () => navigate('/'),
+        });
       } else {
         setError('Something went wrong. Please check your credentials.');
         setIsSubmitLoading(false);
       }
     } catch (err: unknown) {
       let msg = 'Invalid email or password';
-      if (err instanceof Error) msg = err.message;
       if (err && typeof err === 'object' && 'errors' in err) {
-        const errors = (err as { errors: Array<{ message: string }> }).errors;
+        const errors = (err as { errors: Array<{ message: string; code?: string }> }).errors;
+
+        if (errors?.[0]?.code === 'session_exists') {
+          const sessions = client.sessions;
+          if (sessions && sessions.length > 0) {
+            await setActive({
+              session: sessions[0].id,
+              beforeEmit: () => navigate('/'),
+            });
+          } else {
+            navigate('/');
+          }
+          return;
+        }
+
         if (errors?.[0]?.message) msg = errors[0].message;
+      } else if (err instanceof Error) {
+        msg = err.message;
       }
       setError(msg);
       setIsSubmitLoading(false);

@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { useAuth, useUser } from '@clerk/clerk-react';
 import { useDispatch } from 'react-redux';
 import { setAuth, clearAuth } from '@/store/authSlice';
+import { apiRequest } from '@/lib/api';
 
 export default function AuthSync() {
   const { isLoaded: authLoaded, userId, getToken } = useAuth();
@@ -14,6 +15,19 @@ export default function AuthSync() {
         if (userId && user) {
           const token = await getToken();
           if (token) {
+            // Sync user data with our database manually
+            await apiRequest(
+              'POST',
+              '/api/v1/users/sync',
+              {
+                email: user.primaryEmailAddress?.emailAddress || '',
+                firstName: user.firstName,
+                lastName: user.lastName,
+                imageUrl: user.imageUrl,
+              },
+              token,
+            );
+
             dispatch(
               setAuth({
                 token,
@@ -23,7 +37,7 @@ export default function AuthSync() {
                   fullName: user.fullName,
                   imageUrl: user.imageUrl,
                 },
-              })
+              }),
             );
           }
         } else {
@@ -33,7 +47,7 @@ export default function AuthSync() {
     };
 
     sync();
-    
+
     // Set up an interval to refresh the token in Redux every 50 seconds
     // (Clerk tokens usually last 1 minute)
     const interval = setInterval(sync, 50000);

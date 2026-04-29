@@ -1,6 +1,15 @@
 import { Link } from 'react-router-dom';
 import { useLocation } from 'react-router-dom';
-import { LayoutDashboard, Bot, ShieldCheck, Activity, Lock, Key, Settings } from 'lucide-react';
+import {
+  LayoutDashboard,
+  Bot,
+  ShieldCheck,
+  Activity,
+  Lock,
+  Key,
+  Settings,
+  BookOpen,
+} from 'lucide-react';
 
 const NAV_ITEMS = [
   { name: 'Dashboard', href: '/', icon: LayoutDashboard },
@@ -11,7 +20,7 @@ const NAV_ITEMS = [
   { name: 'Permissions', href: '/permissions', icon: ShieldCheck },
   // { name: 'Integrations', href: '/integrations', icon: Plug },
   { name: 'Settings', href: '/settings', icon: Settings },
-  // { name: 'Resources', href: '/resources', icon: BookOpen },
+  { name: 'Resources', href: '/resources', icon: BookOpen },
 ];
 
 export default function SidebarNav() {
