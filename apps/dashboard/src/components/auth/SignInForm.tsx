@@ -1,13 +1,11 @@
 import { useState } from 'react';
 import { useSignIn, useClerk } from '@clerk/clerk-react';
-import { useNavigate, useLocation, useParams } from 'react-router-dom';
 import { Link } from 'react-router-dom';
 import { Loader2 } from 'lucide-react';
 
 export default function SignInForm() {
   const { signIn } = useSignIn();
   const { setActive } = useClerk();
-  const router = useNavigate();
 
   const signInLoaded = !!signIn;
 
@@ -30,9 +28,14 @@ export default function SignInForm() {
         redirectUrl: '/sso-callback',
         redirectUrlComplete: '/',
       });
-    } catch (err) {
-      const error = err as any;
-      setError(error.errors?.[0]?.message || error.message || 'Failed to authenticate with Google');
+    } catch (err: unknown) {
+      let msg = 'Failed to authenticate with Google';
+      if (err instanceof Error) msg = err.message;
+      if (err && typeof err === 'object' && 'errors' in err) {
+        const errors = (err as { errors: Array<{ message: string }> }).errors;
+        if (errors?.[0]?.message) msg = errors[0].message;
+      }
+      setError(msg);
       setIsGoogleLoading(false);
     }
   };
@@ -57,9 +60,14 @@ export default function SignInForm() {
         setError('Something went wrong. Please check your credentials.');
         setIsSubmitLoading(false);
       }
-    } catch (err) {
-      const error = err as any;
-      setError(error.errors?.[0]?.message || error.message || 'Invalid email or password');
+    } catch (err: unknown) {
+      let msg = 'Invalid email or password';
+      if (err instanceof Error) msg = err.message;
+      if (err && typeof err === 'object' && 'errors' in err) {
+        const errors = (err as { errors: Array<{ message: string }> }).errors;
+        if (errors?.[0]?.message) msg = errors[0].message;
+      }
+      setError(msg);
       setIsSubmitLoading(false);
     }
   };

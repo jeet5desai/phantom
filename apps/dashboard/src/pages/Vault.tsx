@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useAuth } from '@clerk/clerk-react';
+import { useRequest } from '@/hooks/useRequest';
 import {
   Lock,
   Plus,
@@ -24,7 +24,7 @@ import {
   DialogFooter,
   DialogClose,
 } from '@/components/ui/dialog';
-import { apiRequest } from '@/lib/api';
+import ConfirmDialog from '@/components/ui/ConfirmDialog';
 
 import { LucideIcon } from 'lucide-react';
 
@@ -49,27 +49,35 @@ interface Credential {
   id: string;
   service: string;
   label?: string;
-  created_at: string;
-  rotated_at?: string | null;
+  createdAt: string;
+  rotatedAt?: string | null;
 }
 
 export default function Vault() {
-  const { getToken } = useAuth();
+  const request = useRequest();
   const [showAddModal, setShowAddModal] = useState(false);
   const [showSecret, setShowSecret] = useState(false);
   const [credentials, setCredentials] = useState<Credential[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
 
-  // Form state
   const [formName, setFormName] = useState('');
   const [formService, setFormService] = useState('');
   const [formSecret, setFormSecret] = useState('');
 
+  const [confirmDelete, setConfirmDelete] = useState<{
+    isOpen: boolean;
+    id: string;
+    name: string;
+  }>({
+    isOpen: false,
+    id: '',
+    name: '',
+  });
+
   const fetchCredentials = async () => {
     setLoading(true);
-    const token = await getToken();
-    const data = await apiRequest('GET', '/api/v1/credentials', undefined, token || undefined);
+    const data = await request('GET', '/api/v1/credentials');
     if (data?.credentials) {
       setCredentials(data.credentials);
     }
@@ -80,8 +88,7 @@ export default function Vault() {
     let isMounted = true;
     const load = async () => {
       setLoading(true);
-      const token = await getToken();
-      const data = await apiRequest('GET', '/api/v1/credentials', undefined, token || undefined);
+      const data = await request('GET', '/api/v1/credentials');
       if (isMounted && data?.credentials) {
         setCredentials(data.credentials);
       }
@@ -91,24 +98,18 @@ export default function Vault() {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [request]);
 
   const handleAddSecret = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formService.trim() || !formSecret.trim()) return;
 
     setSubmitting(true);
-    const token = await getToken();
-    const result = await apiRequest(
-      'POST',
-      '/api/v1/credentials',
-      {
-        service: formService.trim(),
-        apiKey: formSecret.trim(),
-        label: formName.trim() || undefined,
-      },
-      token || undefined,
-    );
+    const result = await request('POST', '/api/v1/credentials', {
+      service: formService.trim(),
+      apiKey: formSecret.trim(),
+      label: formName.trim() || undefined,
+    });
 
     if (result?.credential) {
       setShowAddModal(false);
@@ -121,18 +122,16 @@ export default function Vault() {
   };
 
   const handleDelete = async (credentialId: string, serviceName: string) => {
-    const confirmed = window.confirm(
-      `Delete credential for "${serviceName}"? This cannot be undone.`,
-    );
-    if (!confirmed) return;
+    setConfirmDelete({
+      isOpen: true,
+      id: credentialId,
+      name: serviceName,
+    });
+  };
 
-    const token = await getToken();
-    const result = await apiRequest(
-      'DELETE',
-      `/api/v1/credentials/${credentialId}`,
-      undefined,
-      token || undefined,
-    );
+  const executeDelete = async () => {
+    const { id } = confirmDelete;
+    const result = await request('DELETE', `/api/v1/credentials/${id}`);
     if (result) {
       fetchCredentials();
     }
@@ -140,7 +139,8 @@ export default function Vault() {
 
   const formatTime = (dateStr: string) => {
     const date = new Date(dateStr);
-    const seconds = Math.floor((Date.now() - date.getTime()) / 1000);
+    const now = new Date().getTime();
+    const seconds = Math.floor((now - date.getTime()) / 1000);
     if (seconds < 60) return 'Just now';
     const minutes = Math.floor(seconds / 60);
     if (minutes < 60) return `${minutes}m ago`;
@@ -151,7 +151,7 @@ export default function Vault() {
   };
 
   const activeCount = credentials.length;
-  const rotatedCount = credentials.filter((c) => c.rotated_at).length;
+  const rotatedCount = credentials.filter((c) => c.rotatedAt).length;
 
   return (
     <div className="flex flex-col gap-lg fade-in">
@@ -253,7 +253,6 @@ export default function Vault() {
               <tbody className="divide-y divide-border">
                 {credentials.map((cred) => {
                   const SecretIcon = getServiceIcon(cred.service);
-                  const hasRotated = !!cred.rotated_at;
                   return (
                     <tr key={cred.id} className="group hover:bg-background transition-colors">
                       <td className="px-lg py-5">
@@ -282,12 +281,12 @@ export default function Vault() {
                       </td>
                       <td className="px-lg py-5">
                         <span className="text-sm text-text-secondary">
-                          {formatTime(cred.created_at)}
+                          {formatTime(cred.createdAt)}
                         </span>
                       </td>
                       <td className="px-lg py-5">
                         <span className="text-sm text-text-secondary">
-                          {cred.rotated_at ? formatTime(cred.rotated_at) : '—'}
+                          {cred.rotatedAt ? formatTime(cred.rotatedAt) : '—'}
                         </span>
                       </td>
                       <td className="px-lg py-5 text-right">
@@ -404,6 +403,14 @@ export default function Vault() {
           </form>
         </DialogContent>
       </Dialog>
+      <ConfirmDialog
+        isOpen={confirmDelete.isOpen}
+        onClose={() => setConfirmDelete({ ...confirmDelete, isOpen: false })}
+        onConfirm={executeDelete}
+        title="Delete Credential"
+        description={`Are you sure you want to delete the credential for "${confirmDelete.name}"? This action cannot be undone.`}
+        confirmText="Delete Secret"
+      />
     </div>
   );
 }

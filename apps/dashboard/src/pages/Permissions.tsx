@@ -34,7 +34,7 @@ const PolicyFlowDesigner = React.lazy(() => import("@/components/PolicyFlowDesig
 const POLICIES = [
   { id: "pol_1", name: "Global Data Redaction", type: "Privacy", status: "Enabled", scope: "all:agents", description: "Automatically redact PII (SSN, Passwords, CC) from all agent inputs/outputs." },
   { id: "pol_2", name: "Financial Write Guardrail", type: "Security", status: "Enabled", scope: "stripe:*", description: "Require human approval for any transaction over $500." },
-  { id: "pol_3", name: "GitHub Access Boundary", type: "Access", status: "Enabled", scope: "github:org/private/*", description: "Restrict file write access to designated production branches." },
+  { id: "pol_3", name: "GitHub Access Boundary", type: "Access", status: "Enabled", scope: "github:repo/private/*", description: "Restrict file write access to designated production branches." },
   { id: "pol_4", name: "Model Spend Cap", type: "Budget", status: "Disabled", scope: "all:models", description: "Stop agent execution if daily spend exceeds $50." },
 ];
 

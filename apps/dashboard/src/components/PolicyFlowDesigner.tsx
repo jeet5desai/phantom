@@ -1,6 +1,6 @@
 
 
-import React, { useCallback, useMemo } from 'react';
+import React, { useCallback } from 'react';
 import ReactFlow, { 
   addEdge, 
   Background, 
@@ -15,7 +15,7 @@ import ReactFlow, {
   Position
 } from 'reactflow';
 import 'reactflow/dist/style.css';
-import { Shield, Zap, UserRoundCheck, Lock, Globe, Terminal, LucideIcon } from 'lucide-react';
+import { Zap, UserRoundCheck, Lock, Terminal, LucideIcon } from 'lucide-react';
 
 interface SecurityNodeProps {
   data: {
@@ -116,7 +116,7 @@ const initialEdges = [
 ];
 
 export default function PolicyFlowDesigner() {
-  const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
+  const [nodes, , onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
 
   const onConnect = useCallback(

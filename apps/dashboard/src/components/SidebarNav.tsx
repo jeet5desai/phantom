@@ -1,19 +1,6 @@
-
-
 import { Link } from 'react-router-dom';
-import { useNavigate, useLocation, useParams } from 'react-router-dom';
-import {
-  LayoutDashboard,
-  Bot,
-  ShieldCheck,
-  Activity,
-  Lock,
-  Key,
-  Plug,
-  Settings,
-  Shield,
-  BookOpen,
-} from 'lucide-react';
+import { useLocation } from 'react-router-dom';
+import { LayoutDashboard, Bot, ShieldCheck, Activity, Lock, Key, Settings } from 'lucide-react';
 
 const NAV_ITEMS = [
   { name: 'Dashboard', href: '/', icon: LayoutDashboard },
@@ -22,9 +9,9 @@ const NAV_ITEMS = [
   { name: 'API Keys', href: '/api-keys', icon: Key },
   { name: 'Audit Logs', href: '/audit-logs', icon: Activity },
   { name: 'Permissions', href: '/permissions', icon: ShieldCheck },
-  { name: 'Integrations', href: '/integrations', icon: Plug },
+  // { name: 'Integrations', href: '/integrations', icon: Plug },
   { name: 'Settings', href: '/settings', icon: Settings },
-  { name: 'Resources', href: '/resources', icon: BookOpen },
+  // { name: 'Resources', href: '/resources', icon: BookOpen },
 ];
 
 export default function SidebarNav() {
@@ -37,7 +24,8 @@ export default function SidebarNav() {
         const Icon = item.icon;
 
         return (
-          <Link key={item.name}
+          <Link
+            key={item.name}
             to={item.href}
             className={`
               flex items-center gap-3 px-4 py-3 rounded-md group

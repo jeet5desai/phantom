@@ -1,7 +1,5 @@
-
-
-import { useState, useEffect } from "react";
-import { useAuth } from "@clerk/clerk-react";
+import { useState, useEffect } from 'react';
+import { useRequest } from '@/hooks/useRequest';
 import {
   Key,
   Plus,
@@ -13,7 +11,7 @@ import {
   Trash2,
   Ban,
   AlertCircle,
-} from "lucide-react";
+} from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -22,21 +20,25 @@ import {
   DialogDescription,
   DialogFooter,
   DialogClose,
-} from "@/components/ui/dialog";
-import { apiRequest } from "@/lib/api";
+} from '@/components/ui/dialog';
+import ConfirmDialog from '@/components/ui/ConfirmDialog';
 
 interface ApiKeyItem {
   id: string;
   name: string;
-  key_prefix: string;
-  last_used_at: string | null;
-  revoked_at: string | null;
-  created_at: string;
+  keyPrefix: string;
+  lastUsedAt: string | null;
+  revokedAt: string | null;
+  createdAt: string;
 }
 
-function formatTime(dateStr: string) {
-  const seconds = Math.floor((Date.now() - new Date(dateStr).getTime()) / 1000);
-  if (seconds < 60) return "Just now";
+function formatTime(dateStr: string | null | undefined) {
+  if (!dateStr) return 'Never';
+  const date = new Date(dateStr);
+  if (isNaN(date.getTime())) return 'Unknown';
+
+  const seconds = Math.floor((Date.now() - date.getTime()) / 1000);
+  if (seconds < 60) return 'Just now';
   const minutes = Math.floor(seconds / 60);
   if (minutes < 60) return `${minutes}m ago`;
   const hours = Math.floor(minutes / 60);
@@ -45,19 +47,32 @@ function formatTime(dateStr: string) {
 }
 
 export default function ApiKeys() {
-  const { getToken } = useAuth();
+  const request = useRequest();
   const [apiKeys, setApiKeys] = useState<ApiKeyItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [formName, setFormName] = useState("");
+  const [formName, setFormName] = useState('');
   const [revealedKey, setRevealedKey] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
 
+  const [confirmState, setConfirmState] = useState<{
+    isOpen: boolean;
+    title: string;
+    description: string;
+    onConfirm: () => void;
+    variant: 'danger' | 'warning';
+  }>({
+    isOpen: false,
+    title: '',
+    description: '',
+    onConfirm: () => {},
+    variant: 'danger',
+  });
+
   const fetchKeys = async () => {
     setLoading(true);
-    const token = await getToken();
-    const data = await apiRequest("GET", "/api/v1/api-keys", undefined, token || undefined);
+    const data = await request('GET', '/api/v1/api-keys');
     if (data?.apiKeys) setApiKeys(data.apiKeys);
     setLoading(false);
   };
@@ -66,24 +81,24 @@ export default function ApiKeys() {
     let mounted = true;
     const load = async () => {
       setLoading(true);
-      const token = await getToken();
-      const data = await apiRequest("GET", "/api/v1/api-keys", undefined, token || undefined);
+      const data = await request('GET', '/api/v1/api-keys');
       if (mounted && data?.apiKeys) setApiKeys(data.apiKeys);
       if (mounted) setLoading(false);
     };
     load();
-    return () => { mounted = false; };
-  }, []);
+    return () => {
+      mounted = false;
+    };
+  }, [request]);
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formName.trim()) return;
     setSubmitting(true);
-    const token = await getToken();
-    const result = await apiRequest("POST", "/api/v1/api-keys", { name: formName.trim() }, token || undefined);
+    const result = await request('POST', '/api/v1/api-keys', { name: formName.trim() });
     if (result?.rawKey) {
       setRevealedKey(result.rawKey);
-      setFormName("");
+      setFormName('');
       setShowCreateModal(false);
       fetchKeys();
     }
@@ -91,17 +106,29 @@ export default function ApiKeys() {
   };
 
   const handleRevoke = async (keyId: string, keyName: string) => {
-    if (!window.confirm(`Revoke "${keyName}"? SDK clients using this key will stop working.`)) return;
-    const token = await getToken();
-    await apiRequest("POST", `/api/v1/api-keys/${keyId}/revoke`, undefined, token || undefined);
-    fetchKeys();
+    setConfirmState({
+      isOpen: true,
+      title: 'Revoke API Key',
+      description: `Revoke "${keyName}"? SDK clients using this key will stop working immediately.`,
+      variant: 'warning',
+      onConfirm: async () => {
+        await request('POST', `/api/v1/api-keys/${keyId}/revoke`);
+        fetchKeys();
+      },
+    });
   };
 
   const handleDelete = async (keyId: string, keyName: string) => {
-    if (!window.confirm(`Delete "${keyName}"? This cannot be undone.`)) return;
-    const token = await getToken();
-    await apiRequest("DELETE", `/api/v1/api-keys/${keyId}`, undefined, token || undefined);
-    fetchKeys();
+    setConfirmState({
+      isOpen: true,
+      title: 'Delete API Key',
+      description: `Delete "${keyName}"? This action is permanent and cannot be undone.`,
+      variant: 'danger',
+      onConfirm: async () => {
+        await request('DELETE', `/api/v1/api-keys/${keyId}`);
+        fetchKeys();
+      },
+    });
   };
 
   const copyToClipboard = (text: string) => {
@@ -110,21 +137,32 @@ export default function ApiKeys() {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const activeKeys = apiKeys.filter((k) => !k.revoked_at);
-  const revokedKeys = apiKeys.filter((k) => k.revoked_at);
+  const activeKeys = apiKeys.filter((k) => !k.revokedAt);
+  const revokedKeys = apiKeys.filter((k) => k.revokedAt);
 
   return (
     <div className="flex flex-col gap-lg fade-in">
       <div className="flex justify-between items-end mb-2">
         <div className="flex flex-col gap-1">
           <h1 className="text-4xl font-display font-bold">API Keys</h1>
-          <p className="text-text-secondary text-lg">Create and manage API keys for SDK authentication.</p>
+          <p className="text-text-secondary text-lg">
+            Create and manage API keys for SDK authentication.
+          </p>
         </div>
         <div className="flex gap-3">
-          <button onClick={fetchKeys} className="p-3 bg-surface-hover border border-border rounded-md text-text-secondary hover:text-accent-primary transition-colors">
-            <RefreshCw size={20} className={loading ? "animate-spin" : ""} />
+          <button
+            onClick={fetchKeys}
+            className="p-3 bg-surface-hover border border-border rounded-md text-text-secondary hover:text-accent-primary transition-colors"
+          >
+            <RefreshCw size={20} className={loading ? 'animate-spin' : ''} />
           </button>
-          <button className="btn-primary flex items-center gap-2" onClick={() => { setShowCreateModal(true); setFormName(""); }}>
+          <button
+            className="btn-primary flex items-center gap-2"
+            onClick={() => {
+              setShowCreateModal(true);
+              setFormName('');
+            }}
+          >
             <Plus size={20} />
             <span>Create API Key</span>
           </button>
@@ -158,7 +196,9 @@ export default function ApiKeys() {
         ) : apiKeys.length === 0 ? (
           <div className="p-lg flex flex-col items-center gap-4 py-16">
             <Key size={48} className="text-text-tertiary" />
-            <p className="text-text-secondary text-sm">No API keys yet. Create one to start using the SDK.</p>
+            <p className="text-text-secondary text-sm">
+              No API keys yet. Create one to start using the SDK.
+            </p>
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -175,7 +215,7 @@ export default function ApiKeys() {
               </thead>
               <tbody className="divide-y divide-border">
                 {apiKeys.map((k) => {
-                  const isRevoked = !!k.revoked_at;
+                  const isRevoked = !!k.revokedAt;
                   return (
                     <tr key={k.id} className="group hover:bg-background transition-colors">
                       <td className="px-lg py-5">
@@ -190,7 +230,9 @@ export default function ApiKeys() {
                         </div>
                       </td>
                       <td className="px-lg py-5">
-                        <span className="text-xs font-mono px-3 py-1 bg-surface-hover border border-border rounded-md text-text-secondary">{k.key_prefix}</span>
+                        <span className="text-xs font-mono px-3 py-1 bg-surface-hover border border-border rounded-md text-text-secondary">
+                          {k.keyPrefix}
+                        </span>
                       </td>
                       <td className="px-lg py-5">
                         {isRevoked ? (
@@ -206,19 +248,31 @@ export default function ApiKeys() {
                         )}
                       </td>
                       <td className="px-lg py-5">
-                        <span className="text-sm text-text-secondary">{formatTime(k.created_at)}</span>
+                        <span className="text-sm text-text-secondary">
+                          {formatTime(k.createdAt)}
+                        </span>
                       </td>
                       <td className="px-lg py-5">
-                        <span className="text-sm text-text-secondary">{k.last_used_at ? formatTime(k.last_used_at) : "Never"}</span>
+                        <span className="text-sm text-text-secondary">
+                          {formatTime(k.lastUsedAt)}
+                        </span>
                       </td>
                       <td className="px-lg py-5 text-right">
                         <div className="flex justify-end gap-2">
                           {!isRevoked && (
-                            <button onClick={() => handleRevoke(k.id, k.name)} className="p-2 border border-border rounded-md text-text-tertiary hover:bg-warning/10 hover:text-warning transition-all" title="Revoke">
+                            <button
+                              onClick={() => handleRevoke(k.id, k.name)}
+                              className="p-2 border border-border rounded-md text-text-tertiary hover:bg-warning/10 hover:text-warning transition-all"
+                              title="Revoke"
+                            >
                               <Ban size={16} />
                             </button>
                           )}
-                          <button onClick={() => handleDelete(k.id, k.name)} className="p-2 border border-border rounded-md text-text-tertiary hover:bg-error-bg hover:text-error transition-all" title="Delete">
+                          <button
+                            onClick={() => handleDelete(k.id, k.name)}
+                            className="p-2 border border-border rounded-md text-text-tertiary hover:bg-error-bg hover:text-error transition-all"
+                            title="Delete"
+                          >
                             <Trash2 size={16} />
                           </button>
                         </div>
@@ -244,16 +298,29 @@ export default function ApiKeys() {
           </DialogHeader>
           <div className="flex items-center gap-2 bg-background border border-border rounded-md px-4 py-3 font-mono text-sm break-all">
             <span className="flex-1 select-all">{revealedKey}</span>
-            <button onClick={() => revealedKey && copyToClipboard(revealedKey)} className="shrink-0 p-2 hover:bg-surface-hover rounded-md transition-colors" title="Copy">
-              {copied ? <Check size={16} className="text-success" /> : <Copy size={16} className="text-text-tertiary" />}
+            <button
+              onClick={() => revealedKey && copyToClipboard(revealedKey)}
+              className="shrink-0 p-2 hover:bg-surface-hover rounded-md transition-colors"
+              title="Copy"
+            >
+              {copied ? (
+                <Check size={16} className="text-success" />
+              ) : (
+                <Copy size={16} className="text-text-tertiary" />
+              )}
             </button>
           </div>
           <div className="p-4 bg-warning/10 rounded-xl flex gap-4 items-start border border-warning/20">
             <AlertCircle size={20} className="text-warning shrink-0 mt-0.5" />
-            <p className="text-xs text-text-secondary leading-relaxed">Store this key in a secure location like a secrets manager. You will not be able to see it again.</p>
+            <p className="text-xs text-text-secondary leading-relaxed">
+              Store this key in a secure location like a secrets manager. You will not be able to
+              see it again.
+            </p>
           </div>
           <DialogFooter>
-            <button className="btn-primary px-8" onClick={() => setRevealedKey(null)}>Done</button>
+            <button className="btn-primary px-8" onClick={() => setRevealedKey(null)}>
+              Done
+            </button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -267,21 +334,46 @@ export default function ApiKeys() {
               <Key size={28} className="text-accent-primary" />
             </div>
             <DialogTitle>Create API Key</DialogTitle>
-            <DialogDescription>Give your key a name so you can identify it later.</DialogDescription>
+            <DialogDescription>
+              Give your key a name so you can identify it later.
+            </DialogDescription>
           </DialogHeader>
           <form className="flex flex-col gap-6" onSubmit={handleCreate}>
             <div className="flex flex-col gap-2">
               <label className="label">Key Name</label>
-              <input type="text" placeholder="e.g. Production, CI/CD, Local Dev" value={formName} onChange={(e) => setFormName(e.target.value)} className="w-full px-4 py-3 bg-background border border-border rounded-md outline-none focus:border-accent-primary transition-colors text-sm font-medium" required />
+              <input
+                type="text"
+                placeholder="e.g. Production, CI/CD, Local Dev"
+                value={formName}
+                onChange={(e) => setFormName(e.target.value)}
+                className="w-full px-4 py-3 bg-background border border-border rounded-md outline-none focus:border-accent-primary transition-colors text-sm font-medium"
+                required
+              />
             </div>
             <DialogFooter>
-              <button type="button" className="px-6 py-3 font-bold text-text-secondary hover:bg-surface-hover rounded-md transition-colors" onClick={() => setShowCreateModal(false)}>Cancel</button>
-              <button type="submit" className="btn-primary px-8" disabled={submitting}>{submitting ? "Creating..." : "Create Key"}</button>
+              <button
+                type="button"
+                className="px-6 py-3 font-bold text-text-secondary hover:bg-surface-hover rounded-md transition-colors"
+                onClick={() => setShowCreateModal(false)}
+              >
+                Cancel
+              </button>
+              <button type="submit" className="btn-primary px-8" disabled={submitting}>
+                {submitting ? 'Creating...' : 'Create Key'}
+              </button>
             </DialogFooter>
           </form>
         </DialogContent>
       </Dialog>
 
+      <ConfirmDialog
+        isOpen={confirmState.isOpen}
+        onClose={() => setConfirmState({ ...confirmState, isOpen: false })}
+        onConfirm={confirmState.onConfirm}
+        title={confirmState.title}
+        description={confirmState.description}
+        variant={confirmState.variant}
+      />
     </div>
   );
 }

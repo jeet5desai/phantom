@@ -30,9 +30,14 @@ export default function SignUpForm() {
         redirectUrl: '/sso-callback',
         redirectUrlComplete: '/',
       });
-    } catch (err) {
-      const error = err as any;
-      setError(error.errors?.[0]?.message || error.message || 'Failed to authenticate with Google');
+    } catch (err: unknown) {
+      let msg = 'Failed to authenticate with Google';
+      if (err instanceof Error) msg = err.message;
+      if (err && typeof err === 'object' && 'errors' in err) {
+        const errors = (err as { errors: Array<{ message: string }> }).errors;
+        if (errors?.[0]?.message) msg = errors[0].message;
+      }
+      setError(msg);
       setIsGoogleLoading(false);
     }
   };
@@ -48,7 +53,7 @@ export default function SignUpForm() {
       const [firstName, ...lastNames] = name.trim().split(' ');
       const lastName = lastNames.join(' ');
 
-      const result = await signUp.create({
+      await signUp.create({
         emailAddress: email,
         password,
         firstName: firstName || '',
@@ -61,11 +66,14 @@ export default function SignUpForm() {
       });
 
       setPendingVerification(true);
-    } catch (err) {
-      const error = err as any;
-      setError(
-        error.errors?.[0]?.message || error.message || 'Something went wrong during sign up',
-      );
+    } catch (err: unknown) {
+      let msg = 'Something went wrong during sign up';
+      if (err instanceof Error) msg = err.message;
+      if (err && typeof err === 'object' && 'errors' in err) {
+        const errors = (err as { errors: Array<{ message: string }> }).errors;
+        if (errors?.[0]?.message) msg = errors[0].message;
+      }
+      setError(msg);
     } finally {
       setIsSubmitLoading(false);
     }
@@ -90,9 +98,14 @@ export default function SignUpForm() {
         setError('Verification failed.');
         setIsVerifyLoading(false);
       }
-    } catch (err) {
-      const error = err as any;
-      setError(error.errors?.[0]?.message || error.message || 'Invalid verification code');
+    } catch (err: unknown) {
+      let msg = 'Invalid verification code';
+      if (err instanceof Error) msg = err.message;
+      if (err && typeof err === 'object' && 'errors' in err) {
+        const errors = (err as { errors: Array<{ message: string }> }).errors;
+        if (errors?.[0]?.message) msg = errors[0].message;
+      }
+      setError(msg);
       setIsVerifyLoading(false);
     }
   };

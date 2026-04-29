@@ -1,5 +1,5 @@
-import { useEffect, useState, useCallback } from 'react';
-import { useAuth } from '@clerk/clerk-react';
+import { useState, useEffect, useCallback } from 'react';
+import { useRequest } from '@/hooks/useRequest';
 import { Link, useParams } from 'react-router-dom';
 import {
   ArrowLeft,
@@ -16,15 +16,15 @@ import {
   CheckCircle2,
   AlertCircle,
 } from 'lucide-react';
-import { apiRequest } from '@/lib/api';
+import ConfirmDialog from '@/components/ui/ConfirmDialog';
 
 interface Agent {
   id: string;
   name: string;
   model: string;
   version?: string;
-  created_at: string;
-  revoked_at?: string | null;
+  createdAt: string;
+  revokedAt?: string | null;
 }
 
 interface Permission {
@@ -41,7 +41,7 @@ interface TimelineEntry {
 }
 
 export default function AgentDetails() {
-  const { getToken } = useAuth();
+  const request = useRequest();
   const { id } = useParams<{ id: string }>();
 
   const [loading, setLoading] = useState(true);
@@ -49,6 +49,7 @@ export default function AgentDetails() {
   const [permissions, setPermissions] = useState<Permission[]>([]);
   const [timeline, setTimeline] = useState<TimelineEntry[]>([]);
   const [revoking, setRevoking] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
 
   const formatTime = (date: Date) => {
     const seconds = Math.floor((new Date().getTime() - new Date(date).getTime()) / 1000);
@@ -63,11 +64,10 @@ export default function AgentDetails() {
   const loadData = useCallback(async () => {
     // We only set loading if it's not already true (e.g. on manual refresh)
     setLoading(true);
-    const token = await getToken();
     const [agentRes, permRes, auditRes] = await Promise.all([
-      apiRequest('GET', `/api/v1/agents/${id}`, undefined, token || undefined),
-      apiRequest('GET', `/api/v1/agents/${id}/permissions`, undefined, token || undefined),
-      apiRequest('GET', `/api/v1/audit?agentId=${id}&limit=5`, undefined, token || undefined),
+      request('GET', `/api/v1/agents/${id}`),
+      request('GET', `/api/v1/agents/${id}/permissions`),
+      request('GET', `/api/v1/audit?agentId=${id}&limit=5`),
     ]);
 
     if (agentRes?.agent) setAgent(agentRes.agent);
@@ -75,9 +75,9 @@ export default function AgentDetails() {
     if (auditRes?.entries) {
       setTimeline(
         auditRes.entries.map(
-          (log: { action: string; created_at: string; resource?: string; result: string }) => ({
+          (log: { action: string; createdAt: string; resource?: string; result: string }) => ({
             event: log.action,
-            time: formatTime(new Date(log.created_at)),
+            time: formatTime(new Date(log.createdAt)),
             type: log.resource || 'system',
             status: log.result === 'allowed' || log.result === 'success' ? 'success' : 'failure',
           }),
@@ -85,7 +85,7 @@ export default function AgentDetails() {
       );
     }
     setLoading(false);
-  }, [id]);
+  }, [id, request]);
 
   useEffect(() => {
     let isMounted = true;
@@ -106,14 +106,8 @@ export default function AgentDetails() {
   }, [loadData]);
 
   const handleRevoke = async () => {
-    const confirmed = window.confirm(
-      'Are you sure you want to revoke this agent? All associated sessions will be terminated. This action cannot be undone.',
-    );
-    if (!confirmed) return;
-
     setRevoking(true);
-    const token = await getToken();
-    const result = await apiRequest('POST', `/api/v1/agents/${id}/revoke`, undefined, token || undefined);
+    const result = await request('POST', `/api/v1/agents/${id}/revoke`);
     if (result?.agent) {
       setAgent(result.agent);
     }
@@ -140,9 +134,9 @@ export default function AgentDetails() {
     );
   }
 
-  const isRevoked = !!agent.revoked_at;
+  const isRevoked = !!agent.revokedAt;
   const status = isRevoked ? 'Revoked' : 'Active';
-  const createdDate = new Date(agent.created_at).toLocaleDateString();
+  const createdDate = new Date(agent.createdAt).toLocaleDateString();
 
   return (
     <div className="flex flex-col gap-lg fade-in">
@@ -347,7 +341,7 @@ export default function AgentDetails() {
               </p>
               <button
                 id="revoke-agent-button"
-                onClick={handleRevoke}
+                onClick={() => setShowConfirm(true)}
                 disabled={revoking}
                 className="w-full py-3 bg-error text-white rounded-md font-bold text-sm hover:bg-error/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
@@ -357,6 +351,15 @@ export default function AgentDetails() {
           )}
         </div>
       </div>
+
+      <ConfirmDialog
+        isOpen={showConfirm}
+        onClose={() => setShowConfirm(false)}
+        onConfirm={handleRevoke}
+        title="Revoke Agent"
+        description="Are you sure you want to revoke this agent? All associated sessions will be terminated. This action cannot be undone."
+        confirmText="Revoke Agent"
+      />
     </div>
   );
 }

@@ -9,7 +9,7 @@ export interface Agent {
   model: string | null;
   version: string | null;
   publicKey: string | null;
-  metadata: any;
+  metadata: Prisma.JsonValue;
   createdBy: string | null;
   createdAt: Date;
   revokedAt: Date | null;

@@ -1,7 +1,7 @@
 
 
 import { useState, useEffect } from 'react';
-import { useAuth } from '@clerk/clerk-react';
+import { useRequest } from '@/hooks/useRequest';
 import {
   Bot,
   Zap,
@@ -14,7 +14,6 @@ import {
   TrendingUp,
   RefreshCw,
 } from 'lucide-react';
-import { apiRequest } from '@/lib/api';
 import { Link } from 'react-router-dom';
 
 interface RecentActivity {
@@ -33,14 +32,13 @@ interface DashboardStats {
 }
 
 export default function Home() {
-  const { getToken } = useAuth();
+  const request = useRequest();
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
 
   const fetchStats = async () => {
     setLoading(true);
-    const token = await getToken();
-    const data = await apiRequest('GET', '/api/v1/dashboard/stats', undefined, token || undefined);
+    const data = await request('GET', '/api/v1/dashboard/stats');
     if (data) {
       setStats(data);
     }
@@ -51,8 +49,7 @@ export default function Home() {
     let isMounted = true;
     const load = async () => {
       setLoading(true);
-      const token = await getToken();
-      const data = await apiRequest('GET', '/api/v1/dashboard/stats', undefined, token || undefined);
+      const data = await request('GET', '/api/v1/dashboard/stats');
       if (isMounted && data) {
         setStats(data);
       }
@@ -62,7 +59,7 @@ export default function Home() {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [request]);
 
   return (
     <div className="flex flex-col gap-lg fade-in">
@@ -70,7 +67,7 @@ export default function Home() {
         <div className="flex flex-col gap-1">
           <h1 className="text-4xl font-display font-bold">Security Overview</h1>
           <p className="text-text-secondary text-lg">
-            Real-time governance and audit metrics for your AI workspace.
+            Real-time governance and audit metrics for AgentKey.
           </p>
         </div>
         <button

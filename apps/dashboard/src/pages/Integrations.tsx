@@ -1,17 +1,12 @@
-
-
 import { useState, useEffect } from "react";
-import { useAuth } from "@clerk/clerk-react";
+import { useRequest } from "@/hooks/useRequest";
 import { 
-  Plug, 
   Search, 
   ExternalLink, 
   CheckCircle2, 
-  AlertCircle,
   Plus,
   RefreshCw
 } from "lucide-react";
-import { apiRequest } from "@/lib/api";
 
 const ICON_COLORS: Record<string, string> = {
   stripe: "bg-[#635bff]",
@@ -35,7 +30,7 @@ interface Integration {
 }
 
 export default function Integrations() {
-  const { getToken } = useAuth();
+  const request = useRequest();
   const [integrations, setIntegrations] = useState<Integration[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -43,8 +38,7 @@ export default function Integrations() {
     let isMounted = true;
     const load = async () => {
       setLoading(true);
-      const token = await getToken();
-      const data = await apiRequest('GET', '/api/v1/integrations', undefined, token || undefined);
+      const data = await request('GET', '/api/v1/integrations');
       if (isMounted && data?.integrations) {
         setIntegrations(data.integrations);
       }
@@ -52,12 +46,11 @@ export default function Integrations() {
     };
     load();
     return () => { isMounted = false; };
-  }, []);
+  }, [request]);
 
   const fetchIntegrations = async () => {
     setLoading(true);
-    const token = await getToken();
-    const data = await apiRequest('GET', '/api/v1/integrations', undefined, token || undefined);
+    const data = await request('GET', '/api/v1/integrations');
     if (data?.integrations) {
       setIntegrations(data.integrations);
     }

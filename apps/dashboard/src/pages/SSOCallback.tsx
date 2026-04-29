@@ -1,8 +1,5 @@
-
-
-import { useEffect } from "react";
-import { useClerk } from "@clerk/clerk-react";
-import { Loader2 } from "lucide-react";
+import { useEffect } from 'react';
+import { useClerk } from '@clerk/clerk-react';
 
 export default function SSOCallback() {
   const { handleRedirectCallback } = useClerk();

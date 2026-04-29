@@ -12,7 +12,7 @@ export interface AuditEntry {
   resource: string | null;
   result: string;
   reasoning: string | null;
-  metadata: any;
+  metadata: Prisma.JsonValue;
   hash: string;
   prevHash: string | null;
   createdAt: Date;
@@ -70,7 +70,7 @@ export async function logAction(input: LogActionInput): Promise<AuditEntry> {
     return {
       ...entry,
       id: entry.id.toString(),
-      metadata: entry.metadata as any,
+      metadata: entry.metadata as Prisma.JsonValue,
     };
   });
 }
@@ -108,7 +108,11 @@ export async function queryAuditLog(
   ]);
 
   return {
-    entries: logs.map((l) => ({ ...l, id: l.id.toString(), metadata: l.metadata as any })),
+    entries: logs.map((l) => ({
+      ...l,
+      id: l.id.toString(),
+      metadata: l.metadata as Prisma.JsonValue,
+    })),
     total,
   };
 }

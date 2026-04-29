@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { ClerkProvider } from '@clerk/clerk-react';
 
 import LayoutWrapper from './components/LayoutWrapper';
+import AuthSync from './components/AuthSync';
 
 // Pages
 import Home from './pages/Home';
@@ -30,6 +31,7 @@ if (!PUBLISHABLE_KEY) {
 export default function App() {
   return (
     <ClerkProvider publishableKey={PUBLISHABLE_KEY} afterSignOutUrl="/sign-in">
+      <AuthSync />
       <BrowserRouter>
         <LayoutWrapper>
           <Routes>

@@ -1,11 +1,9 @@
-
-
-import { useState, useEffect } from "react";
-import { useAuth } from "@clerk/clerk-react";
-import { 
-  Search, 
-  Filter, 
-  Plus, 
+import { useState, useEffect } from 'react';
+import { useRequest } from '@/hooks/useRequest';
+import {
+  Search,
+  Filter,
+  Plus,
   ExternalLink,
   Settings,
   Bot,
@@ -16,31 +14,30 @@ import {
   Copy,
   CheckCircle2,
   AlertTriangle,
-  Download
-} from "lucide-react";
-import { apiRequest } from "@/lib/api";
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogHeader, 
-  DialogTitle, 
-  DialogDescription, 
-  DialogFooter, 
-  DialogClose 
-} from "@/components/ui/dialog";
-import { Link } from "react-router-dom";
+  Download,
+} from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+  DialogClose,
+} from '@/components/ui/dialog';
+import { Link } from 'react-router-dom';
 
 interface Agent {
   id: string;
   name: string;
   model: string;
-  created_at: string;
-  revoked_at?: string | null;
+  createdAt: string;
+  revokedAt?: string | null;
   metadata?: Record<string, string>;
 }
 
 export default function Agents() {
-  const { getToken } = useAuth();
+  const request = useRequest();
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showKeyModal, setShowKeyModal] = useState(false);
   const [agents, setAgents] = useState<Agent[]>([]);
@@ -56,8 +53,7 @@ export default function Agents() {
 
   const fetchAgents = async () => {
     setLoading(true);
-    const token = await getToken();
-    const data = await apiRequest('GET', '/api/v1/agents', undefined, token || undefined);
+    const data = await request('GET', '/api/v1/agents');
     if (data && data.agents) {
       setAgents(data.agents);
     }
@@ -68,8 +64,7 @@ export default function Agents() {
     let isMounted = true;
     const loadAgents = async () => {
       setLoading(true);
-      const token = await getToken();
-      const data = await apiRequest('GET', '/api/v1/agents', undefined, token || undefined);
+      const data = await request('GET', '/api/v1/agents');
       if (isMounted && data?.agents) {
         setAgents(data.agents);
       }
@@ -77,19 +72,20 @@ export default function Agents() {
     };
 
     loadAgents();
-    return () => { isMounted = false; };
-  }, []);
+    return () => {
+      isMounted = false;
+    };
+  }, [request]);
 
   const handleCreateAgent = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formName.trim()) return;
 
     setCreating(true);
-    const token = await getToken();
-    const result = await apiRequest('POST', '/api/v1/agents', {
+    const result = await request('POST', '/api/v1/agents', {
       name: formName.trim(),
       model: formModel,
-    }, token || undefined);
+    });
 
     if (result?.agent) {
       setShowCreateModal(false);
@@ -138,18 +134,24 @@ export default function Agents() {
       <div className="flex justify-between items-end mb-2">
         <div className="flex flex-col gap-1">
           <h1 className="text-4xl font-display font-bold">AI Agents</h1>
-          <p className="text-text-secondary text-lg">Manage and monitor your deployed AI agents and their permissions.</p>
+          <p className="text-text-secondary text-lg">
+            Manage and monitor your deployed AI agents and their permissions.
+          </p>
         </div>
         <div className="flex gap-3">
-          <button 
+          <button
             onClick={fetchAgents}
             className="p-3 bg-surface-hover border border-border rounded-md text-text-secondary hover:text-accent-primary transition-colors"
           >
             <RefreshCw size={20} className={loading ? 'animate-spin' : ''} />
           </button>
-          <button 
+          <button
             className="btn-primary flex items-center gap-2 "
-            onClick={() => { setShowCreateModal(true); setFormName(''); setFormModel('GPT-4o'); }}
+            onClick={() => {
+              setShowCreateModal(true);
+              setFormName('');
+              setFormModel('GPT-4o');
+            }}
           >
             <Plus size={20} />
             <span>Create New Agent</span>
@@ -160,9 +162,9 @@ export default function Agents() {
       <div className="glass flex justify-between items-center px-lg py-4">
         <div className="flex items-center gap-3 flex-1">
           <Search size={18} className="text-text-tertiary" />
-          <input 
-            type="text" 
-            placeholder="Filter agents by name, ID or model..." 
+          <input
+            type="text"
+            placeholder="Filter agents by name, ID or model..."
             className="bg-transparent border-none outline-none text-text-primary w-full text-sm placeholder:text-text-tertiary"
           />
         </div>
@@ -186,25 +188,39 @@ export default function Agents() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-lg">
           {agents.map((agent) => {
-            const isRevoked = !!agent.revoked_at;
+            const isRevoked = !!agent.revokedAt;
             return (
-              <Link key={agent.id} to={`/agents/${agent.id}`} className="glass p-lg flex flex-col gap-6 hover:border-accent-primary transition-all duration-300 group cursor-pointer">
+              <Link
+                key={agent.id}
+                to={`/agents/${agent.id}`}
+                className="glass p-lg flex flex-col gap-6 hover:border-accent-primary transition-all duration-300 group cursor-pointer"
+              >
                 <div className="flex justify-between items-start">
                   <div className="w-12 h-12 bg-accent-light rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
                     <Bot size={28} className="text-accent-primary" />
                   </div>
-                  <div className={`flex items-center gap-2 px-3 py-1.5 bg-background border border-border rounded-full `}>
-                    {!isRevoked && <span className="w-2 h-2 rounded-full bg-success animate-pulse"></span>}
-                    <span className={`text-[10px] font-bold uppercase tracking-wider ${isRevoked ? 'text-error' : 'text-text-secondary'}`}>
+                  <div
+                    className={`flex items-center gap-2 px-3 py-1.5 bg-background border border-border rounded-full `}
+                  >
+                    {!isRevoked && (
+                      <span className="w-2 h-2 rounded-full bg-success animate-pulse"></span>
+                    )}
+                    <span
+                      className={`text-[10px] font-bold uppercase tracking-wider ${isRevoked ? 'text-error' : 'text-text-secondary'}`}
+                    >
                       {isRevoked ? 'Revoked' : 'Active'}
                     </span>
                   </div>
                 </div>
-                
+
                 <div className="flex flex-col gap-1.5">
-                  <h3 className="text-xl font-display font-bold group-hover:text-accent-primary transition-colors">{agent.name}</h3>
-                  <span className="text-xs font-mono text-text-tertiary tracking-tight">{agent.id}</span>
-                  
+                  <h3 className="text-xl font-display font-bold group-hover:text-accent-primary transition-colors">
+                    {agent.name}
+                  </h3>
+                  <span className="text-xs font-mono text-text-tertiary tracking-tight">
+                    {agent.id}
+                  </span>
+
                   <div className="flex flex-col gap-2 mt-4">
                     <div className="flex items-center gap-3 text-sm text-text-secondary">
                       <Cpu size={14} className="text-text-tertiary" />
@@ -214,13 +230,18 @@ export default function Agents() {
                     <div className="flex items-center gap-3 text-sm text-text-secondary">
                       <Zap size={14} className="text-text-tertiary" />
                       <span className="font-medium">Created:</span>
-                      <span className="font-bold text-text-primary">{new Date(agent.created_at).toLocaleDateString()}</span>
+                      <span className="font-bold text-text-primary">
+                        {new Date(agent.createdAt).toLocaleDateString()}
+                      </span>
                     </div>
                   </div>
-                  
+
                   <div className="flex flex-wrap gap-2 mt-4">
                     {Object.keys(agent.metadata || {}).map((key) => (
-                      <span key={key} className="px-3 py-1 bg-surface-hover border border-border rounded-md text-[11px] font-bold text-text-secondary">
+                      <span
+                        key={key}
+                        className="px-3 py-1 bg-surface-hover border border-border rounded-md text-[11px] font-bold text-text-secondary"
+                      >
                         {key}: {agent.metadata![key]}
                       </span>
                     ))}
@@ -231,7 +252,7 @@ export default function Agents() {
                     )}
                   </div>
                 </div>
-                
+
                 <div className="grid grid-cols-2 gap-3 mt-auto pt-4 border-t border-border">
                   <button className="flex items-center justify-center gap-2 py-2 border border-border rounded-md text-sm font-bold text-text-secondary hover:bg-surface-hover hover:text-text-primary transition-all">
                     <ExternalLink size={14} />
@@ -262,7 +283,8 @@ export default function Agents() {
               </div>
             </div>
             <DialogDescription>
-              Provision a new secure identity for your AI assistant. This identity will be used for all governed actions.
+              Provision a new secure identity for your AI assistant. This identity will be used for
+              all governed actions.
             </DialogDescription>
           </DialogHeader>
 
@@ -282,7 +304,7 @@ export default function Agents() {
             <div className="grid grid-cols-2 gap-4">
               <div className="flex flex-col gap-2">
                 <label className="label">Base Model</label>
-                <select 
+                <select
                   value={formModel}
                   onChange={(e) => setFormModel(e.target.value)}
                   className="w-full px-4 py-3 bg-background border border-border rounded-md outline-none focus:border-accent-primary transition-colors text-sm font-medium appearance-none cursor-pointer"
@@ -306,7 +328,8 @@ export default function Agents() {
             <div className="p-4 bg-accent-light rounded-lg flex gap-3 items-start border border-accent-primary/10">
               <Rocket size={18} className="text-accent-primary mt-0.5 shrink-0" />
               <p className="text-xs text-text-secondary leading-relaxed">
-                A unique cryptographic identity will be generated in the AgentKey HSM for secure, governed execution.
+                A unique cryptographic identity will be generated in the AgentKey HSM for secure,
+                governed execution.
               </p>
             </div>
 
@@ -318,11 +341,7 @@ export default function Agents() {
               >
                 Cancel
               </button>
-              <button
-                type="submit"
-                className="btn-primary"
-                disabled={creating}
-              >
+              <button type="submit" className="btn-primary" disabled={creating}>
                 {creating ? 'Deploying...' : 'Deploy Agent'}
               </button>
             </DialogFooter>
@@ -344,7 +363,8 @@ export default function Agents() {
               </div>
             </div>
             <DialogDescription>
-              Agent <strong>{newAgentName}</strong> was created successfully. Copy or download the private key now — <strong>it will not be shown again</strong>.
+              Agent <strong>{newAgentName}</strong> was created successfully. Copy or download the
+              private key now — <strong>it will not be shown again</strong>.
             </DialogDescription>
           </DialogHeader>
 
@@ -352,7 +372,8 @@ export default function Agents() {
             <div className="p-4 bg-error-bg border border-error/20 rounded-xl flex gap-3 items-start">
               <AlertTriangle size={18} className="text-error shrink-0 mt-0.5" />
               <p className="text-xs text-error leading-relaxed font-medium">
-                This private key is shown only once. If you close this dialog without saving it, you will need to rotate the agent&apos;s credentials to generate a new key.
+                This private key is shown only once. If you close this dialog without saving it, you
+                will need to rotate the agent&apos;s credentials to generate a new key.
               </p>
             </div>
 
@@ -366,8 +387,8 @@ export default function Agents() {
               <button
                 onClick={handleCopyKey}
                 className={`flex-1 flex items-center justify-center gap-2 py-3 border rounded-md text-sm font-bold transition-all ${
-                  keyCopied 
-                    ? 'bg-success-bg border-success/30 text-success' 
+                  keyCopied
+                    ? 'bg-success-bg border-success/30 text-success'
                     : 'border-border text-text-secondary hover:bg-surface-hover hover:text-text-primary'
                 }`}
               >

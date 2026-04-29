@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
-import { useAuth } from '@clerk/clerk-react';
+import { useRequest } from '@/hooks/useRequest';
 import {
-  Activity,
   Download,
   Play,
   Search,
@@ -14,27 +13,25 @@ import {
   ExternalLink,
   RefreshCw,
 } from 'lucide-react';
-import { apiRequest } from '@/lib/api';
 
 interface AuditLogEntry {
   id: string;
-  agent_id: string;
+  agentId: string;
   action: string;
   result: string;
   reasoning: string | null;
-  created_at: string;
+  createdAt: string;
   timestamp?: string;
 }
 
 export default function AuditLogs() {
-  const { getToken } = useAuth();
+  const request = useRequest();
   const [logs, setLogs] = useState<AuditLogEntry[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetchLogs = async () => {
     setLoading(true);
-    const token = await getToken();
-    const data = await apiRequest('GET', '/api/v1/audit?limit=20', undefined, token || undefined);
+    const data = await request('GET', '/api/v1/audit?limit=20');
     if (data && data.entries) {
       setLogs(data.entries);
     }
@@ -45,8 +42,7 @@ export default function AuditLogs() {
     let isMounted = true;
     const loadLogs = async () => {
       setLoading(true);
-      const token = await getToken();
-      const data = await apiRequest('GET', '/api/v1/audit?limit=20', undefined, token || undefined);
+      const data = await request('GET', '/api/v1/audit?limit=20');
       if (isMounted && data?.entries) {
         setLogs(data.entries);
       }
@@ -57,7 +53,7 @@ export default function AuditLogs() {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [request]);
 
   return (
     <div className="flex flex-col gap-lg fade-in">
@@ -147,13 +143,13 @@ export default function AuditLogs() {
                         <div className="flex items-center gap-3 text-sm text-text-secondary whitespace-nowrap">
                           <Clock size={14} className="text-text-tertiary" />
                           <span>
-                            {new Date(log.created_at || log.timestamp || '').toLocaleTimeString()}
+                            {new Date(log.createdAt || log.timestamp || '').toLocaleTimeString()}
                           </span>
                         </div>
                       </td>
                       <td className="px-lg py-5">
                         <span className="font-mono text-xs text-accent-primary">
-                          {log.agent_id.slice(0, 12)}...
+                          {log.agentId.slice(0, 12)}...
                         </span>
                       </td>
                       <td className="px-lg py-5">

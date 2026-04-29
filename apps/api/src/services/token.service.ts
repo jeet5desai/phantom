@@ -187,6 +187,6 @@ export async function createDelegatedToken(
     throw new Error(`DELEGATION_DENIED:${delegation.denied.join(',')}`);
   }
 
-  const { parentAgentId, ...createInput } = input;
+  const { parentAgentId: _parentAgentId, ...createInput } = input;
   return createToken(createInput);
 }

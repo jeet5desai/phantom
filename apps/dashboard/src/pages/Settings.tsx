@@ -1,34 +1,52 @@
-
-
 import { useState } from 'react';
 import { useUser, useClerk } from '@clerk/clerk-react';
-import {
-  User,
-  Lock,
-  Users,
-  CreditCard,
-  Bell,
-  Shield,
-  Mail,
-  Smartphone,
-  ChevronRight,
-  LogOut,
-  Plus,
-  Loader2,
-} from 'lucide-react';
+import { User, CreditCard, Smartphone, LogOut, Plus, Loader2, AlertCircle } from 'lucide-react';
+import ConfirmDialog from '@/components/ui/ConfirmDialog';
 
 const TABS = [
   { id: 'general', name: 'General', icon: User },
-  { id: 'security', name: 'Security', icon: Shield },
-  { id: 'members', name: 'Team Members', icon: Users },
+  // { id: 'security', name: 'Security', icon: Shield },
   { id: 'billing', name: 'Billing', icon: CreditCard },
-  { id: 'notifications', name: 'Notifications', icon: Bell },
+  // { id: 'notifications', name: 'Notifications', icon: Bell },
 ];
 
 export default function Settings() {
   const { user, isLoaded } = useUser();
   const { signOut } = useClerk();
   const [activeTab, setActiveTab] = useState('general');
+  const [updating, setUpdating] = useState(false);
+
+  // Form states
+  const [fullName, setFullName] = useState(user?.fullName || '');
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const [status, setStatus] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+
+  const handleSave = async () => {
+    if (!user) return;
+    setUpdating(true);
+    try {
+      const names = fullName.split(' ');
+      const firstName = names[0] || '';
+      const lastName = names.slice(1).join(' ') || '';
+
+      await user.update({
+        firstName,
+        lastName,
+      });
+      setStatus({ type: 'success', message: 'Profile updated successfully!' });
+    } catch (err: unknown) {
+      let msg = 'Failed to update profile';
+      if (err instanceof Error) msg = err.message;
+      if (err && typeof err === 'object' && 'errors' in err) {
+        const errors = (err as { errors: Array<{ message: string }> }).errors;
+        if (errors?.[0]?.message) msg = errors[0].message;
+      }
+      setStatus({ type: 'error', message: msg });
+    } finally {
+      setUpdating(false);
+      setTimeout(() => setStatus(null), 5000);
+    }
+  };
 
   if (!isLoaded) {
     return (
@@ -42,9 +60,7 @@ export default function Settings() {
     <div className="flex flex-col gap-lg fade-in">
       <div className="flex flex-col gap-1 mb-2">
         <h1 className="text-4xl font-display font-bold">Settings</h1>
-        <p className="text-text-secondary text-lg">
-          Manage your account preferences, security, and team members.
-        </p>
+        <p className="text-text-secondary text-lg">Manage your account preferences and security.</p>
       </div>
 
       <div className="flex flex-col lg:flex-row gap-lg">
@@ -70,7 +86,7 @@ export default function Settings() {
           })}
           <div className="mt-8 pt-4 border-t border-border">
             <button
-              onClick={() => signOut()}
+              onClick={() => setShowLogoutConfirm(true)}
               className="flex items-center gap-3 px-4 py-3 rounded-lg text-error hover:bg-error-bg transition-all w-full text-left font-bold text-sm"
             >
               <LogOut size={20} />
@@ -90,6 +106,19 @@ export default function Settings() {
                 </p>
               </div>
 
+              {status && (
+                <div
+                  className={`p-4 rounded-xl flex items-center gap-3 animate-in fade-in slide-in-from-top-2 duration-300 ${
+                    status.type === 'success'
+                      ? 'bg-success-bg text-success border border-success/20'
+                      : 'bg-error-bg text-error border border-error/20'
+                  }`}
+                >
+                  <AlertCircle size={18} />
+                  <span className="text-sm font-bold">{status.message}</span>
+                </div>
+              )}
+
               <div className="flex items-center gap-8">
                 <div className="w-24 h-24 bg-accent-light rounded-full flex items-center justify-center border-4 border-surface overflow-hidden relative group cursor-pointer">
                   {user?.imageUrl ? (
@@ -97,6 +126,8 @@ export default function Settings() {
                       src={user.imageUrl}
                       alt={user.fullName || ''}
                       className="w-full h-full object-cover"
+                      loading="lazy"
+                      decoding="async"
                     />
                   ) : (
                     <span className="text-3xl font-display font-bold text-accent-primary">
@@ -115,13 +146,13 @@ export default function Settings() {
                   </button>
                 </div>
               </div>
-
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="flex flex-col gap-2">
                   <label className="label">Full Name</label>
                   <input
                     type="text"
-                    defaultValue={user?.fullName || ''}
+                    value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
                     className="w-full px-4 py-3 bg-background border border-border rounded-md outline-none focus:border-accent-primary transition-colors text-sm font-medium"
                   />
                 </div>
@@ -130,37 +161,29 @@ export default function Settings() {
                   <input
                     type="email"
                     defaultValue={user?.primaryEmailAddress?.emailAddress || ''}
-                    className="w-full px-4 py-3 bg-background border border-border rounded-md outline-none focus:border-accent-primary transition-colors text-sm font-medium"
+                    disabled
+                    className="w-full px-4 py-3 bg-background border border-border rounded-md outline-none opacity-50 cursor-not-allowed text-sm font-medium"
                   />
-                </div>
-                <div className="flex flex-col gap-2">
-                  <label className="label">Username</label>
-                  <input
-                    type="text"
-                    defaultValue={user?.username || ''}
-                    className="w-full px-4 py-3 bg-background border border-border rounded-md outline-none focus:border-accent-primary transition-colors text-sm font-medium"
-                  />
-                </div>
-                <div className="flex flex-col gap-2">
-                  <label className="label">Timezone</label>
-                  <select className="w-full px-4 py-3 bg-background border border-border rounded-md outline-none focus:border-accent-primary transition-colors text-sm font-medium">
-                    <option>Pacific Time (PT)</option>
-                    <option>Eastern Time (ET)</option>
-                    <option>GMT / UTC</option>
-                  </select>
                 </div>
               </div>
 
               <div className="flex justify-end gap-3 pt-6 border-t border-border mt-4">
-                <button className="px-6 py-3 font-bold text-text-secondary hover:bg-surface-hover rounded-md transition-colors">
+                <button
+                  onClick={() => {
+                    setFullName(user?.fullName || '');
+                  }}
+                  className="px-6 py-3 font-bold text-text-secondary hover:bg-surface-hover rounded-md transition-colors"
+                >
                   Discard
                 </button>
-                <button className="btn-primary px-8 ">Save Changes</button>
+                <button onClick={handleSave} disabled={updating} className="btn-primary px-8 ">
+                  {updating ? 'Saving...' : 'Save Changes'}
+                </button>
               </div>
             </div>
           )}
 
-          {activeTab === 'security' && (
+          {/* {activeTab === 'security' && (
             <div className="flex flex-col gap-8 max-w-2xl animate-in slide-in-from-right-4 duration-300">
               <div className="flex flex-col gap-2 border-b border-border pb-6">
                 <h3 className="text-2xl font-display font-bold">Security Settings</h3>
@@ -221,7 +244,7 @@ export default function Settings() {
                 </div>
               </div>
             </div>
-          )}
+          )} */}
 
           {activeTab === 'billing' && (
             <div className="flex flex-col gap-8 animate-in slide-in-from-right-4 duration-300">
@@ -276,6 +299,16 @@ export default function Settings() {
           )}
         </main>
       </div>
+
+      <ConfirmDialog
+        isOpen={showLogoutConfirm}
+        onClose={() => setShowLogoutConfirm(false)}
+        onConfirm={() => signOut()}
+        title="Sign Out"
+        description="Are you sure you want to sign out? You will need to sign in again to access your dashboard."
+        confirmText="Sign Out"
+        variant="warning"
+      />
     </div>
   );
 }
