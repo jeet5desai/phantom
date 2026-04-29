@@ -30,7 +30,6 @@ export default function Permissions() {
   const [creationMode, setCreationMode] = useState<CreationMode>(null);
 
   const [agentOptions, setAgentOptions] = useState<string[]>(['All Agents']);
-  const [isLoadingAgents, setIsLoadingAgents] = useState(true);
 
   const fetchAgents = useCallback(async () => {
     try {
@@ -40,8 +39,6 @@ export default function Permissions() {
       }
     } catch (err) {
       console.error(err);
-    } finally {
-      setIsLoadingAgents(false);
     }
   }, [request]);
 

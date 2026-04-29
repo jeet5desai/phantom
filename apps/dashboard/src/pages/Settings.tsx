@@ -1,13 +1,13 @@
 import { useState } from 'react';
 import { useUser, useClerk } from '@clerk/clerk-react';
 import { useRequest } from '@/hooks/useRequest';
-import { User, CreditCard, Smartphone, LogOut, Plus, Loader2, AlertCircle } from 'lucide-react';
+import { User, Smartphone, LogOut, Plus, Loader2, AlertCircle } from 'lucide-react';
 import ConfirmDialog from '@/components/ui/ConfirmDialog';
 
 const TABS = [
   { id: 'general', name: 'General', icon: User },
   // { id: 'security', name: 'Security', icon: Shield },
-  { id: 'billing', name: 'Billing', icon: CreditCard },
+  // { id: 'billing', name: 'Billing', icon: CreditCard },
   // { id: 'notifications', name: 'Notifications', icon: Bell },
 ];
 
